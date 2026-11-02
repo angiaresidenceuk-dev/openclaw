@@ -25,16 +25,8 @@ function out(slug, name) {
   return join(dir, name);
 }
 
-/** World (360×640) → CSS pixels, mirroring main.js resize(). */
-function toScreen(vw, vh, x, y) {
-  const s = Math.min(vw / 360, vh / 640);
-  const free = vh - 640 * s;
-  const ox = (vw - 360 * s) / 2;
-  const oy = free > 0 ? free * 0.15 : (vh - 640 * s) / 2;
-  return { x: ox + x * s, y: oy + y * s };
-}
 
-async function newPage(browser, { w = 390, h = 844, t = DAY } = {}) {
+async function newPage(browser, { w = 390, h = 844, t = DAY, mode = "3d" } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: w, height: h },
     deviceScaleFactor: 2,
@@ -44,8 +36,8 @@ async function newPage(browser, { w = 390, h = 844, t = DAY } = {}) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
   page.on("console", (m) => m.type() === "error" && !/fonts\.g/.test(m.text()) && errors.push(`console: ${m.text()}`));
-  await page.goto(`${BASE}/?t=${encodeURIComponent(t)}`);
-  await page.waitForTimeout(800);
+  await page.goto(`${BASE}/?t=${encodeURIComponent(t)}&mode=${mode}`, { timeout: 60000 });
+  await page.waitForTimeout(1500);
   return { page, ctx, w, h };
 }
 
@@ -57,15 +49,16 @@ async function enter(p, name = "Minh An", robe = "lam", head = "toc") {
   await p.page.waitForTimeout(3800); // walk in from the gate
 }
 
-async function tapWorld(p, x, y, wait = 3000) {
-  const pt = toScreen(p.w, p.h, x, y);
+/** Tap a point of the 360×640 plan (h = height in 3D units), via the game's own projection. */
+async function tapWorld(p, x, y, wait = 3000, h = 0) {
+  const pt = await p.page.evaluate(([a, b, c]) => globalThis.__amMay.worldToScreen(a, b, c), [x, y, h]);
   await p.page.mouse.click(pt.x, pt.y);
   await p.page.waitForTimeout(wait);
 }
 
 const clickText = (p, text) => p.page.getByRole("button", { name: text, exact: true }).click();
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 try {
   // Story 001 + 007: welcome, entering, the scene by day
   const a = await newPage(browser);
@@ -74,17 +67,20 @@ try {
   await a.page.screenshot({ path: out("story-001-scene-and-walk", "02-courtyard-day.png") });
 
   // Story 002: rituals at the altar and the bell
-  await tapWorld(a, 180, 230, 4000);
+  console.log("view:", await a.page.evaluate(() => globalThis.__amMay.view()));
+  await tapWorld(a, 180, 284, 4500, 1.1);
   await clickText(a, "Thắp nhang");
   await a.page.waitForTimeout(2500);
   await a.page.screenshot({ path: out("story-002-rituals", "01-altar-incense.png") });
-  await tapWorld(a, 40, 240, 4500);
+  await tapWorld(a, 180, 440, 3000);
+  await clickText(a, "Gác chuông");
+  await a.page.waitForTimeout(5000);
   await clickText(a, "Thỉnh chuông");
-  await a.page.waitForTimeout(900);
+  await a.page.waitForTimeout(1100);
   await a.page.screenshot({ path: out("story-002-rituals", "02-bell-ripples.png") });
 
   // Story 003: cushion, beads, meditation
-  await tapWorld(a, 156, 368, 4000);
+  await tapWorld(a, 156, 368, 4500, 0.4);
   await a.page.screenshot({ path: out("story-003-meditation", "01-seated-dock.png") });
   await clickText(a, "Lần chuỗi");
   for (let i = 0; i < 12; i++) await a.page.click("#beads-canvas");
@@ -102,7 +98,10 @@ try {
   await clickText(a, "Ngồi tiếp");
 
   // Story 005: lantern with a private wish
-  await tapWorld(a, 70, 520, 4500);
+  await clickText(a, "Đứng dậy");
+  await a.page.waitForTimeout(1200);
+  await clickText(a, "Hồ sen");
+  await a.page.waitForTimeout(5000);
   await clickText(a, "Thả đèn hoa đăng");
   await a.page.fill("#wish", "Mong cả nhà bình an qua mùa mưa bão");
   await a.page.click('label[for="lc-do"]');
@@ -133,18 +132,39 @@ try {
   await enter(p1, "Một", "trang", "troc");
   const p2 = await newPage(browser);
   await enter(p2, "Hai", "nau", "toc");
-  await tapWorld(p1, 108, 368, 3500);
-  await tapWorld(p1, 40, 240, 4500);
+  await clickText(p1, "Gác chuông");
+  await p1.page.waitForTimeout(5000);
   await clickText(p1, "Thỉnh chuông");
   await p2.page.waitForTimeout(1200);
   await p2.page.screenshot({ path: out("story-006-shared-presence", "01-second-visitor-sees-first.png") });
   const presenceText = await p2.page.textContent("#presence-text");
   writeFileSync(out("story-006-shared-presence", "presence.txt"), `${presenceText}\n`);
+  // Software WebGL in CI is heavy: release the earlier pages before opening more.
+  for (const pg of [a, p1, p2]) await pg.ctx.close();
 
   // Wide screen layout
   const wide = await newPage(browser, { w: 1440, h: 900 });
   await enter(wide);
   await wide.page.screenshot({ path: out("story-001-scene-and-walk", "03-desktop.png") });
+  await wide.ctx.close();
+
+  // Story 008: orbit and zoom the 3D camera, then the 2D fallback
+  const orbit = await newPage(browser, { t: "2026-11-02T17:40:00+07:00" });
+  await enter(orbit, "Vân", "trang", "troc");
+  await orbit.page.mouse.move(200, 500);
+  await orbit.page.mouse.down();
+  await orbit.page.mouse.move(330, 470, { steps: 12 });
+  await orbit.page.mouse.up();
+  await orbit.page.mouse.move(195, 500);
+  await orbit.page.mouse.wheel(0, -600);
+  await orbit.page.waitForTimeout(1800);
+  await orbit.page.screenshot({ path: out("story-008-3d-view", "01-orbit-dusk.png") });
+  await orbit.page.click("#btn-mode");
+  await orbit.page.waitForTimeout(1200);
+  await orbit.page.screenshot({ path: out("story-008-3d-view", "02-switched-to-2d.png") });
+  const flat = await newPage(browser, { mode: "2d" });
+  await enter(flat);
+  await flat.page.screenshot({ path: out("story-008-3d-view", "03-2d-fallback-day.png") });
 } finally {
   await browser.close();
 }

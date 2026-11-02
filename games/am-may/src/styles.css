@@ -195,6 +195,11 @@ textarea {
   cursor: pointer;
   backdrop-filter: blur(6px);
 }
+.mode-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
 .icon-btn svg {
   width: 20px;
   height: 20px;

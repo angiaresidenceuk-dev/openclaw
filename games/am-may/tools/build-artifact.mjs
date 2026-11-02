@@ -15,7 +15,9 @@ const fragment = args.includes("--fragment");
 const outPath = args.find((a) => !a.startsWith("--")) ?? join(ROOT, "dist/am-may.html");
 
 // Dependency order: every module appears after the modules it imports.
-const ORDER = ["tuning", "lunar", "rituals", "meditation", "world", "render", "audio", "presence", "share", "main"];
+const ORDER = ["tuning", "lunar", "rituals", "meditation", "world", "render", "audio", "presence", "share", "view2d", "view3d", "main"];
+// Three.js r128 (MIT). Single-file builds load it from cdnjs; the repo serves src/vendor/three.min.js.
+const THREE_CDN = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>';
 
 function bundleModule(name) {
   let code = readFileSync(join(SRC, "js", `${name}.js`), "utf8");
@@ -47,6 +49,7 @@ ${fonts}
 ${css}
 </style>
 ${body}
+${THREE_CDN}
 <script type="module">
 ${js}
 </script>
@@ -65,6 +68,7 @@ ${css}
 </head>
 <body>
 ${body}
+${THREE_CDN}
 <script type="module">
 ${js}
 </script>

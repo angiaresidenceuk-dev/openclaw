@@ -2,6 +2,11 @@
 // Không có máy chủ (ví dụ mở file tĩnh) thì chạy chế độ một mình, nói rõ cho
 // người chơi biết — không bao giờ giả lập người ảo.
 
+/** Chế độ một mình: send() vẫn trả về kết quả như bản có máy chủ, để nơi gọi không phải rẽ nhánh. */
+export function soloPresence() {
+  return { mode: "solo", send: async () => ({ ok: false, status: 0 }), close() {} };
+}
+
 /**
  * @param {object} o
  * @param {string|null} o.base  gốc URL máy chủ, null = một mình
@@ -9,7 +14,7 @@
  * @param {(e:{type:string, data?:any}) => void} o.onEvent
  */
 export async function connectPresence({ base, profile, onEvent }) {
-  const solo = { mode: "solo", send() {}, close() {} };
+  const solo = soloPresence();
   if (!base || typeof EventSource === "undefined" || typeof fetch === "undefined") return solo;
   try {
     const ctrl = new AbortController();

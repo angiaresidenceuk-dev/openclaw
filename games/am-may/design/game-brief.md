@@ -38,6 +38,6 @@
 ---
 **Who it's for / what they feel:** Người Việt 18–35 tuổi mệt mỏi, ở xa chùa hoặc bận vào ngày Rằm; muốn mười phút yên tĩnh có người bên cạnh mà không phải giao tiếp.
 
-**Art & audio direction:** Tranh phẳng màu sơn mài (đỏ son, vàng thếp, nâu gỗ, xanh rêu), mây núi và trăng theo giờ thật; chuông, mõ, gió, chim, dế tổng hợp bằng Web Audio.
+**Art & audio direction:** Sa bàn 3D low-poly (Three.js) xoay được, màu sơn mài (đỏ son, vàng thếp, nâu gỗ, xanh rêu), mây núi và trăng theo giờ thật; có bản 2D cho máy yếu; chuông, mõ, gió, chim, dế tổng hợp bằng Web Audio.
 
 **Reference game:** Sansa (산사, web Hàn Quốc 2026): giữ ý "ngồi cạnh nhau không chat"; bỏ hàng chờ, bỏ cúng tiền, thêm lịch âm, hoa đăng, tĩnh tâm có hướng dẫn. Phân tích đầy đủ: `design/market-analysis-sansa.md`.

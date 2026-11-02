@@ -15,3 +15,4 @@
 | 005 | [Đèn hoa đăng và lời nguyện riêng tư](story-005-lanterns.md) | Logic | Complete |
 | 006 | [Cùng tĩnh tâm: thấy nhau, không chat](story-006-shared-presence.md) | Integration | Complete |
 | 007 | [Sổ tay hôm nay và thiệp chia sẻ](story-007-share-card.md) | UI | Complete |
+| 008 | [Giao diện 3D tương tác](story-008-3d-view.md) | Visual/Feel | Complete |

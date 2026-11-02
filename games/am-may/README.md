@@ -6,6 +6,9 @@ thả đèn hoa đăng trên hồ sen, cạnh những người lạ mà không a
 
 **Không chat. Không quảng cáo. Không quyên góp. Không bói toán.** Tên và lời nguyện chỉ lưu trên máy người chơi.
 
+**Cảnh 3D tương tác** (Three.js): kéo để xoay quanh am, chụm hai ngón hoặc lăn chuột để gần/xa,
+chạm để đi tới. Máy không có WebGL tự chuyển sang cảnh 2D; nút **2D/3D** trên góc phải để đổi qua lại.
+
 Am Mây được thiết kế sau khi phân tích hiện tượng chùa online **Sansa (산사)** của Hàn Quốc
 (xem `design/market-analysis-sansa.md`). Đây là một game nguyên bản cùng thể loại, làm lại từ
 văn hoá Việt, không sao chép Sansa.
@@ -36,7 +39,7 @@ node tools/qa-screens.mjs            # (máy chủ phải đang chạy) chụp �
 node tools/build-artifact.mjs dist/am-may.html
 ```
 
-Tạo một trang HTML duy nhất (~100 KB) để đăng lên itch.io, Claude Artifact, hoặc gửi đi. Bản một tệp
+Tạo một trang HTML duy nhất (~175 KB, tải Three.js từ cdnjs) để đăng lên itch.io, Claude Artifact, hoặc gửi đi. Bản một tệp
 không có máy chủ nên chạy chế độ một mình.
 
 ## Triển khai có chế độ "cùng tĩnh tâm"
@@ -56,12 +59,14 @@ Trước khi phát hành công khai tại Việt Nam, đọc mục **Rủi ro v�
 |---|---|
 | `design/market-analysis-sansa.md` | Phân tích Sansa và thị trường Việt Nam |
 | `design/game-brief.md` | Brief một trang (tài liệu thiết kế ở mức `minimal`) |
-| `production/epics/am-may/` | Epic và 7 story |
+| `production/epics/am-may/` | Epic và 8 story |
 | `production/qa/evidence/` | Ảnh chụp game chạy thật cho từng story |
 | `src/index.html`, `src/styles.css` | Trang và giao diện |
 | `src/js/lunar.js` | Âm lịch Việt Nam (UTC+7), can chi, Rằm/Mùng 1, ngày lễ |
 | `src/js/world.js` | Bố cục am, bồ đoàn, điểm nghi thức, tìm đường |
-| `src/js/render.js` | Vẽ cảnh (canvas), trời theo giờ, trăng theo pha |
+| `src/js/view3d.js` | Cảnh 3D (Three.js): mô hình dựng bằng code, camera xoay/thu phóng, chạm để đi |
+| `src/js/view2d.js`, `render.js` | Cảnh 2D (canvas) dự phòng, trời theo giờ, trăng theo pha |
+| `src/vendor/three.min.js` | Three.js r128 (MIT) |
 | `src/js/rituals.js`, `meditation.js` | Nghi thức, tĩnh tâm, chuỗi ngày (hàm thuần) |
 | `src/js/audio.js` | Chuông, mõ, gió, chim, dế tổng hợp bằng Web Audio |
 | `src/js/presence.js`, `server/` | Hiện diện nhiều người (SSE), không chat |

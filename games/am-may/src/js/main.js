@@ -3,27 +3,8 @@
 import { createAudio } from "./audio.js";
 import { describeDay } from "./lunar.js";
 import { createSession, endEarly, formatClock, sessionStatus } from "./meditation.js";
-import { connectPresence } from "./presence.js";
-import {
-  drawAltarLight,
-  drawBell,
-  drawClouds,
-  drawDarkness,
-  drawFallingLeaves,
-  drawFireflies,
-  drawIncenseBowl,
-  drawIncenseTips,
-  drawLantern,
-  drawNightSky,
-  drawPerson,
-  drawRipples,
-  drawSmoke,
-  drawStatic,
-  lanternPosition,
-  skyAt,
-  viewTransform,
-  vnHour,
-} from "./render.js";
+import { connectPresence, soloPresence } from "./presence.js";
+import { lanternPosition, skyAt, vnHour } from "./render.js";
 import {
   advanceBead,
   canRingBell,
@@ -40,7 +21,9 @@ import {
 } from "./rituals.js";
 import { renderCard, shareCard, summaryLines } from "./share.js";
 import { TUNING } from "./tuning.js";
-import { CUSHIONS, LAYOUT, hitTest, planRoute, stepAlong } from "./world.js";
+import { createView2D } from "./view2d.js";
+import { createView3D } from "./view3d.js";
+import { CUSHIONS, HOTSPOTS, LAYOUT, planRoute, stepAlong } from "./world.js";
 
 // ── Thời gian (cho phép ?t=... để chụp ảnh QA ở giờ/ngày bất kỳ) ─────────────
 const params = new URLSearchParams(globalThis.location?.search ?? "");
@@ -70,8 +53,7 @@ function save(key, value) {
 
 // ── DOM ─────────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
-const canvas = $("scene");
-const ctx = canvas.getContext("2d");
+let canvas = $("scene");
 const ui = {
   day: $("date-day"),
   sub: $("date-sub"),
@@ -81,6 +63,7 @@ const ui = {
   presenceText: $("presence-text"),
   sound: $("btn-sound"),
   journal: $("btn-journal"),
+  mode: $("btn-mode"),
   dock: $("dock"),
   dockTitle: $("dock-title"),
   dockHint: $("dock-hint"),
@@ -101,7 +84,7 @@ const ui = {
 let game = restoreState(load(KEY), now());
 let dayInfo = describeDay(new Date(now()));
 let audio = null;
-let presence = { mode: "solo", send: async () => ({ ok: false }), close() {} };
+let presence = soloPresence();
 let room = { no: null, count: 0 };
 let entered = false;
 let enteredAt = 0;
@@ -129,56 +112,54 @@ const peers = new Map();
 const roomIncense = []; // timestamps of other people's offerings in this courtyard
 let lanterns = []; // { id, color, at }
 const ripples = [];
-const smoke = [];
-const fallen = [];
 let bellSwing = { t: -10 };
 
 function persist() {
   save(KEY, JSON.stringify(game));
 }
 
-// ── Canvas & khung nhìn ─────────────────────────────────────────────────────
-let view = { s: 1, ox: 0, oy: 0, w: 0, h: 0, dpr: 1 };
-let staticLayer = null;
-let staticKey = "";
-
-function resize() {
-  const rect = canvas.getBoundingClientRect();
-  const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  const v = viewTransform(rect.width, rect.height);
-  // Lean the scene toward the top so the action dock sits over ground, not the pond.
-  const free = rect.height - 640 * v.s;
-  view = { s: v.s, ox: v.ox, oy: free > 0 ? free * 0.15 : v.oy, w: rect.width, h: rect.height, dpr };
-  staticKey = "";
-}
+// ── Khung nhìn: 3D (Three.js/WebGL) nếu được, không thì 2D ─────────────────
+/** @type {{kind:string, resize():void, render(st:any):void, onTap(h:Function, taken:Function):void, worldToScreen(x:number,y:number,h?:number):{x:number,y:number}, dispose():void, invalidate?():void}} */
+let view = null;
 
 function envNow() {
   const hour = vnHour(new Date(now()));
   return { hour, sky: skyAt(hour), day: dayInfo };
 }
 
-function ensureStatic(env) {
-  const key = `${canvas.width}x${canvas.height}:${Math.floor(env.hour * 6)}`;
-  if (key === staticKey && staticLayer) return;
-  staticLayer ??= document.createElement("canvas");
-  staticLayer.width = canvas.width;
-  staticLayer.height = canvas.height;
-  const sctx = staticLayer.getContext("2d");
-  setWorldTransform(sctx);
-  drawStatic(sctx, env);
-  staticKey = key;
+/** Chọn khung nhìn. 3D cần thư viện THREE và WebGL; thiếu một trong hai thì dùng 2D. */
+function createView(mode) {
+  if (mode !== "2d" && globalThis.THREE) {
+    try {
+      return createView3D(canvas, globalThis.THREE);
+    } catch (err) {
+      console.warn("3D không khởi tạo được, dùng 2D:", err);
+      // A canvas that tried WebGL may refuse a 2D context; start from a fresh element.
+      const fresh = canvas.cloneNode(false);
+      canvas.replaceWith(fresh);
+      canvas = fresh;
+    }
+  }
+  return createView2D(canvas);
 }
 
-function setWorldTransform(c) {
-  const k = view.s * view.dpr;
-  c.setTransform(k, 0, 0, k, view.ox * view.dpr, view.oy * view.dpr);
+function mountView(mode) {
+  view = createView(mode);
+  view.onTap(onTap, takenSeats);
+  ui.mode.textContent = view.kind === "3d" ? "2D" : "3D";
+  ui.mode.setAttribute("aria-label", view.kind === "3d" ? "Chuyển sang cảnh 2D" : "Chuyển sang cảnh 3D");
+  document.body.dataset.view = view.kind;
 }
 
-function toWorld(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  return { x: (clientX - rect.left - view.ox) / view.s, y: (clientY - rect.top - view.oy) / view.s };
+function switchView() {
+  const next = view.kind === "3d" ? "2d" : "3d";
+  view.dispose();
+  const fresh = canvas.cloneNode(false);
+  canvas.replaceWith(fresh);
+  canvas = fresh;
+  mountView(next);
+  save("am-may:mode", view.kind);
+  if (next === "3d" && view.kind !== "3d") toast("Máy này chưa hỗ trợ 3D (WebGL). Am Mây vẫn mở ở dạng 2D.");
 }
 
 // ── Vòng lặp ────────────────────────────────────────────────────────────────
@@ -189,7 +170,7 @@ function frame(ts) {
   lastFrame = ts;
   const t = ts / 1000;
   update(dt, t);
-  draw(t);
+  view.render(frameState(t));
   requestAnimationFrame(frame);
 }
 
@@ -277,50 +258,23 @@ function visibleLanterns(n) {
   return list;
 }
 
-function draw(t) {
+/** Ảnh chụp trạng thái cho khung nhìn vẽ (không chứa logic). */
+function frameState(t) {
   const n = now();
-  const env = envNow();
-  ensureStatic(env);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(staticLayer, 0, 0);
-  setWorldTransform(ctx);
-  if (!reduceMotion) drawClouds(ctx, t, env.sky.night);
-  const swing = (() => {
-    const a = t - bellSwing.t;
-    return a > 0 && a < 4 ? Math.sin(a * 6) * 0.22 * Math.exp(-a * 1.2) : 0;
-  })();
-  drawBell(ctx, swing);
-  const sticks = incenseSticks(n);
-  drawIncenseBowl(ctx, sticks, t, reduceMotion ? null : smoke);
-  if (!reduceMotion) drawFallingLeaves(ctx, fallen, t);
-  // People, back to front
-  const people = [...peers.values()].map((p) => ({
-    ...p,
-    pose: p.walking ? "walk" : p.pose,
-    alpha: 0.9,
-  }));
-  people.push({ ...me, robe: game.profile?.robe ?? "lam", head: game.profile?.head ?? "toc", self: true });
-  people.sort((a, b) => a.y - b.y);
-  if (entered) for (const p of people) drawPerson(ctx, p, t);
-  drawSmoke(ctx, smoke, t);
-  // Night
-  drawDarkness(ctx, env.sky.dark);
-  if (env.sky.night) drawNightSky(ctx, dayInfo.moonPhase, t, dayInfo.special === "ram");
-  drawAltarLight(ctx, t, env.sky.dark);
-  drawIncenseTips(ctx, sticks, t);
-  for (const l of visibleLanterns(n)) drawLantern(ctx, l.pos, l.color, t);
-  if (env.sky.night && !reduceMotion) drawFireflies(ctx, t);
-  drawRipples(ctx, ripples, t);
-  // Peer pulses (mõ / chuỗi hạt): a soft gold ring, no text
-  for (const p of peers.values()) {
-    if (p.pulse > 0) {
-      ctx.strokeStyle = `rgba(240,206,120,${p.pulse})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y - 12, 14 - p.pulse * 6, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
+  return {
+    t,
+    env: envNow(),
+    dayInfo,
+    entered,
+    meditating: session != null,
+    reduceMotion,
+    me: { ...me, robe: game.profile?.robe ?? "lam", head: game.profile?.head ?? "toc" },
+    peers: [...peers.values()],
+    sticks: incenseSticks(n),
+    lanterns: visibleLanterns(n),
+    ripples,
+    bellSwing: bellSwing.t,
+  };
 }
 
 // ── Đi lại & chạm ───────────────────────────────────────────────────────────
@@ -330,11 +284,9 @@ function takenSeats() {
   return s;
 }
 
-function onTap(ev) {
-  if (!entered || session || !ui.sheet.hidden) return;
+function onTap(hit) {
+  if (!entered || session || !ui.sheet.hidden || !hit) return;
   audio?.resume();
-  const p = toWorld(ev.clientX, ev.clientY);
-  const hit = hitTest(p, takenSeats());
   if (hit.kind === "taken") {
     toast("Bồ đoàn này đã có người ngồi. Mời bạn chọn chỗ khác.");
     return;
@@ -355,6 +307,11 @@ function goTo(hit) {
   renderDock();
 }
 
+function goToSpot(kind) {
+  const spot = HOTSPOTS.find((h) => h.kind === kind);
+  if (spot) goTo({ kind, stand: spot.stand });
+}
+
 async function arrive() {
   const hit = me.pending;
   me.pending = null;
@@ -367,7 +324,7 @@ async function arrive() {
     me.place = "cushion";
     renderDock();
     const r = await presence.send({ type: "sit", seat: hit.cushion });
-    if (r.status === 409) {
+    if (r?.status === 409) {
       me.seat = null;
       me.pose = "stand";
       me.place = "courtyard";
@@ -429,7 +386,7 @@ async function ringTheBell() {
   renderDock();
   say("Chuông đã thỉnh.");
   const r = await presence.send({ type: "bell" });
-  if (r.status === 429) toast("Chuông chung vừa ngân. Tiếng chuông này chỉ vang trên máy bạn.");
+  if (r?.status === 429) toast("Chuông chung vừa ngân. Tiếng chuông này chỉ vang trên máy bạn.");
 }
 
 function knockMo() {
@@ -458,7 +415,7 @@ const PLACES = {
   walking: { title: "Đang bước", hint: "Đi chậm thôi, không vội." },
   courtyard: {
     title: "Sân chùa",
-    hint: "Chạm bồ đoàn để ngồi, bát hương để thắp nhang, gác chuông để thỉnh chuông, hồ sen để thả đèn.",
+    hint: "Chạm vào cảnh để đi, kéo để xoay nhìn quanh. Hoặc chọn nhanh một chỗ:",
   },
   altar: { title: "Trước chính điện", hint: "Thắp ba nén nhang, chắp tay, hoặc lạy ba lạy." },
   bell: { title: "Gác chuông", hint: "Tiếng chuông vang khắp sân. Mời bạn thỉnh chậm rãi." },
@@ -515,12 +472,16 @@ function renderDock() {
     case "walking":
       break;
     default:
-      add("Chắp tay", joinHands);
+      // Quick ways to each place: in 3D some of them can be behind the camera.
       add("Ngồi xuống", () => {
         const free = CUSHIONS.find((c) => !takenSeats().has(c.index));
         if (free) goTo({ kind: "cushion", cushion: free.index, stand: { x: free.x, y: free.y } });
         else toast("Các bồ đoàn đều có người. Bạn có thể đứng tĩnh tâm ngay tại sân.");
-      });
+      }, true);
+      add("Bát hương", () => goToSpot("altar"));
+      add("Gác chuông", () => goToSpot("bell"));
+      add("Hồ sen", () => goToSpot("pond"));
+      add("Chắp tay", joinHands);
       break;
   }
   ui.dockCounter.textContent = counter;
@@ -994,7 +955,7 @@ function onPresence({ type, data }) {
     }
     case "full":
       toast("Các sân đều đang kín chỗ. Bạn đang tĩnh tâm riêng, vẫn đầy đủ mọi nghi thức.");
-      presence = { mode: "solo", send: async () => ({ ok: false }), close() {} };
+      presence = soloPresence();
       break;
     case "status":
       if (data === "closed") presence.mode = "solo";
@@ -1040,11 +1001,13 @@ function setSoundButton(on) {
 }
 
 function start() {
-  resize();
+  mountView(params.get("mode") ?? load("am-may:mode") ?? "3d");
   renderHud();
   renderPresence();
-  globalThis.addEventListener("resize", resize);
-  canvas.addEventListener("pointerup", onTap);
+  globalThis.addEventListener("resize", () => view.resize());
+  ui.mode.addEventListener("click", switchView);
+  // Test hook: screen position of a scene point (x, y in the 360×640 plan; h = height in 3D units).
+  globalThis.__amMay = { worldToScreen: (x, y, h = 0) => view.worldToScreen(x, y, h), view: () => view.kind };
   ui.medStop.addEventListener("click", () => {
     if (session) session = endEarly(session, now());
   });
@@ -1064,7 +1027,7 @@ function start() {
   });
   setInterval(renderHud, 60_000);
   // The hall's name board is drawn into the cached layer; redraw once web fonts arrive.
-  document.fonts?.ready.then(() => (staticKey = "")).catch(() => {});
+  document.fonts?.ready.then(() => view.invalidate?.()).catch(() => {});
   persist();
   requestAnimationFrame(frame);
   welcomeSheet();
