@@ -73,8 +73,9 @@ export function createView2D(canvas) {
     drawIncenseBowl(ctx, st.sticks, t, st.reduceMotion ? null : smoke);
     if (!st.reduceMotion) drawFallingLeaves(ctx, fallen, t);
     if (st.entered) {
-      const people = st.peers.map((p) => ({ ...p, pose: p.walking ? "walk" : p.pose, alpha: 0.9 }));
-      people.push({ ...st.me, self: true });
+      // Small figures so 200 people fit the hall's cushion grid.
+      const people = st.peers.map((p) => ({ ...p, pose: p.walking ? "walk" : p.pose, alpha: 0.92, scale: 0.6 }));
+      people.push({ ...st.me, self: true, scale: 0.68 });
       people.sort((p, q) => p.y - q.y);
       for (const p of people) drawPerson(ctx, p, t);
     }
@@ -91,7 +92,7 @@ export function createView2D(canvas) {
         ctx.strokeStyle = `rgba(240,206,120,${p.pulse})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(p.x, p.y - 12, 14 - p.pulse * 6, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y - 8, 9 - p.pulse * 4, 0, Math.PI * 2);
         ctx.stroke();
       }
     }

@@ -3,11 +3,12 @@
 // Thiếu tệp hoặc máy không tải được thì game giữ nguyên phần dựng bằng code.
 //
 // Toạ độ là đơn vị 3D của view3d.js (1 đơn vị = 10 điểm mặt bằng 360×640):
-// X trái/phải, Z trước/sau; chính điện tự dựng nằm quanh X 0, Z -20.
+// X trái/phải, Z trước/sau; chính điện tự dựng nằm quanh X 0, Z -15.8 (rộng 32.8, sâu 29.2).
 
 /**
  * @typedef {object} ModelSlot
  * @property {string} id
+ * @property {boolean} enabled        chỉ nạp khi true (tệp đã có trong repo)
  * @property {string} url             đường dẫn tương đối từ trang (src/)
  * @property {[number, number]} center  tâm vùng đặt [X, Z]
  * @property {number} width           bề ngang tối đa (trục X) sau khi xoay
@@ -23,10 +24,13 @@
 export const MODEL_SLOTS = Object.freeze([
   {
     id: "hall",
+    // Bật khi đã đặt tệp vào src/assets/models/ (tắt thì không gọi mạng, không có lỗi 404).
+    enabled: false,
     url: "assets/models/temple-enviroment.glb",
-    center: [0, -20.5],
-    width: 25,
-    depth: 14,
+    // Vỏ chính điện 200 chỗ: X -16.4..16.4, Z -30.4..-1.2. Bệ thờ, sàn và bồ đoàn vẫn giữ.
+    center: [0, -15.8],
+    width: 36,
+    depth: 32,
     y: 0,
     yaw: 0,
     hides: ["hall"],

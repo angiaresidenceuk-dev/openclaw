@@ -68,11 +68,11 @@ try {
 
   // Story 002: rituals at the altar and the bell
   console.log("view:", await a.page.evaluate(() => globalThis.__amMay.view()));
-  await tapWorld(a, 180, 284, 4500, 1.1);
+  await tapWorld(a, 180, 150, 6000, 3);
   await clickText(a, "Thắp nhang");
   await a.page.waitForTimeout(2500);
   await a.page.screenshot({ path: out("story-002-rituals", "01-altar-incense.png") });
-  await tapWorld(a, 180, 440, 3000);
+  await tapWorld(a, 180, 300, 4000, 0.6); // the aisle: always on screen, opens the quick-walk dock
   await clickText(a, "Gác chuông");
   await a.page.waitForTimeout(5000);
   await clickText(a, "Thỉnh chuông");
@@ -80,7 +80,7 @@ try {
   await a.page.screenshot({ path: out("story-002-rituals", "02-bell-ripples.png") });
 
   // Story 003: cushion, beads, meditation
-  await tapWorld(a, 156, 368, 4500, 0.4);
+  await tapWorld(a, 149.25, 244, 6000, 0.8);
   await a.page.screenshot({ path: out("story-003-meditation", "01-seated-dock.png") });
   await clickText(a, "Lần chuỗi");
   for (let i = 0; i < 12; i++) await a.page.click("#beads-canvas");

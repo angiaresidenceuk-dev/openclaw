@@ -1,0 +1,4 @@
+presence: 101 người cùng tĩnh tâmĐiện 2 · 101/200 chỗ
+dock: Bồ đoàn hàng 1, chỗ 4
+fps (SwiftShader, CI box): 8.3
+errors: none

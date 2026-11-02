@@ -16,3 +16,4 @@
 | 006 | [Cùng tĩnh tâm: thấy nhau, không chat](story-006-shared-presence.md) | Integration | Complete |
 | 007 | [Sổ tay hôm nay và thiệp chia sẻ](story-007-share-card.md) | UI | Complete |
 | 008 | [Giao diện 3D tương tác](story-008-3d-view.md) | Visual/Feel | Complete |
+| 009 | [Chính điện 200 chỗ ngồi](story-009-hall-200.md) | Integration | Complete |

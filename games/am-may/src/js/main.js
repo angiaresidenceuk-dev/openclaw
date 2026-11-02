@@ -24,7 +24,7 @@ import { renderCard, shareCard, summaryLines } from "./share.js";
 import { TUNING } from "./tuning.js";
 import { createView2D } from "./view2d.js";
 import { createView3D } from "./view3d.js";
-import { CUSHIONS, HOTSPOTS, LAYOUT, planRoute, stepAlong } from "./world.js";
+import { CUSHIONS, HOTSPOTS, LAYOUT, planRoute, stepAlong, zoneOf } from "./world.js";
 
 // ── Thời gian (cho phép ?t=... để chụp ảnh QA ở giờ/ngày bất kỳ) ─────────────
 const params = new URLSearchParams(globalThis.location?.search ?? "");
@@ -334,7 +334,7 @@ async function arrive() {
     }
     return;
   }
-  me.place = hit.kind === "walk" ? "courtyard" : hit.kind;
+  me.place = hit.kind === "walk" ? (zoneOf(me) === "hall" ? "hall" : "courtyard") : hit.kind;
   renderDock();
 }
 
@@ -418,7 +418,11 @@ const PLACES = {
     title: "Sân chùa",
     hint: "Chạm vào cảnh để đi, kéo để xoay nhìn quanh. Hoặc chọn nhanh một chỗ:",
   },
-  altar: { title: "Trước chính điện", hint: "Thắp ba nén nhang, chắp tay, hoặc lạy ba lạy." },
+  hall: {
+    title: "Chính điện",
+    hint: `${CUSHIONS.length} bồ đoàn, hai khối hai bên lối đi giữa. Chạm một bồ đoàn trống để ngồi:`,
+  },
+  altar: { title: "Trước bệ thờ", hint: "Thắp ba nén nhang, chắp tay, hoặc lạy ba lạy." },
   bell: { title: "Gác chuông", hint: "Tiếng chuông vang khắp sân. Mời bạn thỉnh chậm rãi." },
   pond: {
     title: "Hồ sen",
@@ -441,7 +445,8 @@ function renderDock() {
   if (!entered) return;
   const place = PLACES[me.place] ?? PLACES.courtyard;
   ui.dock.hidden = false;
-  ui.dockTitle.textContent = me.place === "cushion" ? `Bồ đoàn số ${me.seat + 1}` : place.title;
+  const seat = me.seat != null ? CUSHIONS[me.seat] : null;
+  ui.dockTitle.textContent = seat ? `Bồ đoàn hàng ${seat.row + 1}, chỗ ${seat.col + 1}` : place.title;
   ui.dockHint.textContent = place.hint;
   ui.dockActions.replaceChildren();
   let counter = "";
@@ -882,8 +887,8 @@ function renderHud() {
 function renderPresence() {
   if (presence.mode === "shared" && room.no) {
     ui.presence.classList.remove("solo");
-    const line = room.count > 1 ? `${room.count} người cùng tĩnh tâm` : "Chỉ có bạn ở sân này";
-    ui.presenceText.replaceChildren(line, el("span", { class: "presence-room", text: `Sân ${room.no}` }));
+    const line = room.count > 1 ? `${room.count} người cùng tĩnh tâm` : "Chỉ có bạn trong điện";
+    ui.presenceText.replaceChildren(line, el("span", { class: "presence-room", text: `Điện ${room.no} · ${room.count}/${CUSHIONS.length} chỗ` }));
   } else {
     ui.presence.classList.add("solo");
     ui.presenceText.textContent = entered ? "Một mình, yên tĩnh" : "Am Mây";

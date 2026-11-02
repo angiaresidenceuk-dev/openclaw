@@ -37,8 +37,8 @@ export const TUNING = Object.freeze({
   // Đêm Rằm: chính Am Mây thắp sẵn vài ngọn đèn trên hồ (trang trí của am, không phải người chơi).
   ramLanterns: 8,
   room: {
-    capacity: 24, // = số bồ đoàn trên sân
-    maxRooms: 400,
+    capacity: 200, // = số bồ đoàn trong một chính điện (world.js CUSHIONS)
+    maxRooms: 100,
     actionsPerWindow: 8,
     windowSeconds: 5,
     heartbeatSeconds: 20,

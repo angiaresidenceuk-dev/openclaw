@@ -15,9 +15,10 @@ errors from that run (none).
 | 005 Lanterns | `story-005-lanterns/01-wish-sheet.png`, `02-lantern-on-pond.png` | Private wish form; red lantern on the pond |
 | 006 Shared presence | `story-006-shared-presence/01-second-visitor-sees-first.png`, `presence.txt` | A second browser sees the others and the shared bell ripple |
 | 008 3D view | `story-008-3d-view/01-orbit-dusk.png`, `02-switched-to-2d.png`, `03-2d-fallback-day.png` | Camera dragged and zoomed at dusk; the 2D/3D button; the 2D fallback |
+| 009 Hall of 200 | `story-009-hall-200/01..05`, `notes.txt` | 150 test sessions plus the player: roof on, roof faded inside, the whole hall, 2D hall, full-moon night |
 | 007 Share card | `story-007-share-card/01-journal.png`, `02-share-sheet.png`, `03-card-1080x1350.png` | Journal with the private wish list; the generated card (no wish text) |
 
-Automated: `node --test tests/unit/*.test.mjs` — 40 tests, 40 pass (lunar
+Automated: `node --test tests/unit/*.test.mjs` — 42 tests, 42 pass (lunar
 calendar, rituals, meditation, world/pathing, rooms, solo presence). The
 single-file bundle was also driven in Chromium (3D, solo mode): no errors.
 

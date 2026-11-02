@@ -1,48 +1,67 @@
-// Bố cục Am Mây trong hệ toạ độ cảnh 360×640 (dọc, hợp điện thoại) và
-// đường đi. Từ dưới lên: cổng tam quan → lối đi lát gạch (hồ sen bên trái,
-// vườn đá bên phải) → sân gạch có 24 bồ đoàn → bát hương → chính điện.
-// Gác chuông ở góc trái sân, cây bồ đề ở mép phải.
+// Bố cục Am Mây trên mặt bằng 360×640 (dọc, hợp điện thoại) và đường đi.
+// Từ trên xuống: chính điện lớn (bệ thờ, bát hương, 200 bồ đoàn chia hai
+// khối, lối đi giữa) → sân trước (gác chuông bên trái, cây bồ đề bên phải)
+// → lối đi lát đá (hồ sen bên trái, vườn đá bên phải) → cổng tam quan.
+// view3d.js dựng cùng bố cục này với 1 đơn vị 3D = 10 điểm mặt bằng.
+
+import { TUNING } from "./tuning.js";
 
 export const LAYOUT = Object.freeze({
-  hall: { x: 70, y: 118, w: 220, h: 144 }, // mái tới bậc thềm
-  incense: { x: 180, y: 284 },
-  bellTower: { x: 10, y: 186, w: 70, h: 118 },
-  tree: { trunkX: 338, trunkY: 300, canopyR: 58 },
-  courtyard: { x: 20, y: 268, w: 320, h: 190 },
+  hall: { x: 16, y: 96, w: 328, h: 292 }, // nền chính điện (mặt trước để ngỏ ở y = 388)
+  dais: { x: 110, y: 104, w: 140, h: 74 }, // bệ thờ
+  incense: { x: 180, y: 190 },
+  bellTower: { x: 12, y: 392, w: 72, h: 74 },
+  tree: { trunkX: 334, trunkY: 452, canopyR: 50 },
+  courtyard: { x: 20, y: 389, w: 320, h: 78 },
   pond: { x: 12, y: 472, w: 140, h: 112 },
   garden: { x: 212, y: 474, w: 140, h: 110 },
-  path: { x: 160, y: 458, w: 40, h: 150 },
+  path: { x: 160, y: 466, w: 40, h: 142 },
   gate: { x: 112, y: 590, w: 136, h: 50 },
   spawn: { x: 180, y: 618 },
 });
 
-// Vùng đi được: hình chữ nhật lồi, nối nhau qua các điểm giao.
+// Vùng đi được: hình chữ nhật lồi, nối nhau qua điểm giao.
 const ZONES = [
-  { id: "courtyard", x: 22, y: 296, w: 316, h: 162 },
-  { id: "path", x: 164, y: 456, w: 32, h: 150 },
+  { id: "hall", x: 24, y: 188, w: 312, h: 201 },
+  { id: "courtyard", x: 22, y: 389, w: 316, h: 77 },
+  { id: "path", x: 164, y: 464, w: 32, h: 142 },
   { id: "gate", x: 128, y: 604, w: 104, h: 26 },
-  { id: "pondEdge", x: 40, y: 456, w: 120, h: 14 },
+  { id: "pondEdge", x: 40, y: 466, w: 116, h: 5 },
 ];
 
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+// at(goal): điểm giao giữa hai vùng; vùng chung một cạnh dài thì lấy theo x của đích.
 const LINKS = [
-  ["courtyard", "path", { x: 180, y: 457 }],
-  ["path", "gate", { x: 180, y: 605 }],
-  ["courtyard", "pondEdge", null], // chung cạnh dài: điểm giao lấy theo x của điểm đến
+  ["hall", "courtyard", (goal) => ({ x: clamp(goal.x, 40, 320), y: 389 })],
+  ["courtyard", "path", () => ({ x: 180, y: 465 })],
+  ["path", "gate", () => ({ x: 180, y: 605 })],
+  ["courtyard", "pondEdge", (goal) => ({ x: clamp(goal.x, 44, 152), y: 466 })],
 ];
 
-/** 24 bồ đoàn: 6 cột × 4 hàng trước chính điện. */
+/**
+ * 200 bồ đoàn (= sức chứa mỗi điện): 10 hàng, mỗi hàng 20 chỗ chia hai khối
+ * 10 chỗ hai bên lối đi giữa. Chỉ số tăng từ hàng đầu (gần bệ thờ), trái sang phải.
+ */
+export const CUSHION_GRID = Object.freeze({ rows: 10, perSide: 10, pitchX: 14.5, pitchY: 15, aisle: 18, firstRowY: 214 });
 export const CUSHIONS = Object.freeze(
-  Array.from({ length: 24 }, (_, i) => ({
-    index: i,
-    x: 60 + (i % 6) * 48,
-    y: 336 + Math.floor(i / 6) * 32,
-  })),
+  Array.from({ length: CUSHION_GRID.rows * CUSHION_GRID.perSide * 2 }, (_, i) => {
+    const g = CUSHION_GRID;
+    const row = Math.floor(i / (g.perSide * 2));
+    const col = i % (g.perSide * 2); // 0..19, left to right
+    const half = g.aisle / 2 + g.pitchX / 2;
+    const x = col < g.perSide ? 180 - half - (g.perSide - 1 - col) * g.pitchX : 180 + half + (col - g.perSide) * g.pitchX;
+    return { index: i, row, col, x, y: g.firstRowY + row * g.pitchY };
+  }),
 );
+if (CUSHIONS.length !== TUNING.room.capacity) {
+  throw new Error(`CUSHIONS (${CUSHIONS.length}) must equal room.capacity (${TUNING.room.capacity})`);
+}
+export const CUSHION_HIT_RADIUS = 7;
 
 export const HOTSPOTS = Object.freeze([
-  { kind: "altar", rect: { x: 118, y: 150, w: 124, h: 148 }, stand: { x: 180, y: 304 } },
-  { kind: "bell", rect: { x: 6, y: 180, w: 84, h: 128 }, stand: { x: 58, y: 312 } },
-  { kind: "pond", rect: { x: 10, y: 472, w: 146, h: 114 }, stand: { x: 104, y: 464 } },
+  { kind: "altar", rect: { x: 100, y: 96, w: 160, h: 108 }, stand: { x: 180, y: 203 } },
+  { kind: "bell", rect: { x: 6, y: 380, w: 82, h: 90 }, stand: { x: 94, y: 440 } },
+  { kind: "pond", rect: { x: 10, y: 472, w: 146, h: 114 }, stand: { x: 104, y: 468 } },
 ]);
 
 function inRect(p, r) {
@@ -59,10 +78,7 @@ export function clampToWalkable(p) {
   let best = null;
   let bestD = Infinity;
   for (const z of ZONES) {
-    const q = {
-      x: Math.min(Math.max(p.x, z.x), z.x + z.w),
-      y: Math.min(Math.max(p.y, z.y), z.y + z.h),
-    };
+    const q = { x: clamp(p.x, z.x, z.x + z.w), y: clamp(p.y, z.y, z.y + z.h) };
     const d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
     if (d < bestD) {
       bestD = d;
@@ -73,10 +89,7 @@ export function clampToWalkable(p) {
 }
 
 function neighbors(id) {
-  return LINKS.filter(([a, b]) => a === id || b === id).map(([a, b, at]) => ({
-    to: a === id ? b : a,
-    at,
-  }));
+  return LINKS.filter(([a, b]) => a === id || b === id).map(([a, b, at]) => ({ to: a === id ? b : a, at }));
 }
 
 /**
@@ -89,7 +102,7 @@ export function planRoute(from, to) {
   const z0 = zoneOf(start);
   const z1 = zoneOf(goal);
   if (!z0 || !z1 || z0 === z1) return [goal];
-  // BFS over the zone graph; it has four nodes, so this is trivially cheap.
+  // BFS over the zone graph (five nodes).
   const prev = new Map([[z0, null]]);
   const queue = [z0];
   while (queue.length) {
@@ -104,7 +117,7 @@ export function planRoute(from, to) {
   }
   const hops = [];
   for (let z = z1; prev.get(z); z = prev.get(z).from) hops.unshift(prev.get(z));
-  const points = hops.map((h) => h.at ?? { x: Math.min(Math.max(goal.x, 44), 156), y: 457 });
+  const points = hops.map((h) => h.at(goal));
   points.push(goal);
   return points;
 }
@@ -131,17 +144,33 @@ export function stepAlong(pos, route, dist) {
   return { pos: p, route: rest };
 }
 
+/** Bồ đoàn gần điểm p nhất trong bán kính chạm, hoặc null. */
+export function cushionAt(p) {
+  const g = CUSHION_GRID;
+  // Grid lookup instead of scanning 200 cushions.
+  const row = Math.round((p.y - g.firstRowY) / g.pitchY);
+  if (row < 0 || row >= g.rows) return null;
+  let best = null;
+  let bestD = CUSHION_HIT_RADIUS;
+  for (let col = 0; col < g.perSide * 2; col++) {
+    const c = CUSHIONS[row * g.perSide * 2 + col];
+    const d = Math.hypot(p.x - c.x, p.y - c.y);
+    if (d <= bestD) {
+      bestD = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
 /**
- * Người chơi chạm vào điểm p trên cảnh. Ưu tiên bồ đoàn trống, rồi các điểm nghi thức,
- * rồi tới chỗ đứng bất kỳ. `taken` là tập chỉ số bồ đoàn đã có người ngồi.
+ * Người chơi chạm vào điểm p trên mặt bằng. Ưu tiên bồ đoàn, rồi các điểm nghi
+ * thức, rồi chỗ đứng bất kỳ. `taken` là tập chỉ số bồ đoàn đã có người ngồi.
  */
 export function hitTest(p, taken = new Set()) {
-  for (const c of CUSHIONS) {
-    if (Math.hypot(p.x - c.x, p.y - c.y) <= 17) {
-      return taken.has(c.index)
-        ? { kind: "taken", cushion: c.index }
-        : { kind: "cushion", cushion: c.index, stand: { x: c.x, y: c.y } };
-    }
+  const c = cushionAt(p);
+  if (c) {
+    return taken.has(c.index) ? { kind: "taken", cushion: c.index } : { kind: "cushion", cushion: c.index, stand: { x: c.x, y: c.y } };
   }
   for (const h of HOTSPOTS) {
     if (inRect(p, h.rect)) return { kind: h.kind, stand: h.stand };

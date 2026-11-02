@@ -10,7 +10,8 @@ game dùng phần dựng bằng code, không lỗi.
 ## Thêm tệp
 
 1. Đăng nhập Sketchfab (tài khoản miễn phí), mở trang mô hình, bấm **Download 3D Model**, chọn **GLB**.
-2. Đổi tên thành `temple-enviroment.glb`, đặt vào thư mục này (trên GitHub: *Add file → Upload files*).
+2. Đổi tên thành `temple-enviroment.glb`, đặt vào thư mục này (trên GitHub: *Add file → Upload files*),
+   rồi đặt `enabled: true` cho ô đó trong `src/js/assets.js`.
 3. Chạy `node server/presence-server.mjs`, mở `http://localhost:8787`. Nếu vị trí hoặc kích thước
    chưa khớp, chỉnh `center`, `width`, `depth`, `yaw`, `hides` của ô trong `src/js/assets.js`.
 

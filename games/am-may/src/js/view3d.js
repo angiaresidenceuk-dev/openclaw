@@ -5,7 +5,7 @@
 
 import { MODEL_SLOTS } from "./assets.js";
 import { TUNING } from "./tuning.js";
-import { CUSHIONS, HOTSPOTS, LAYOUT, hitTest } from "./world.js";
+import { CUSHIONS, HOTSPOTS, LAYOUT, hitTest, zoneOf } from "./world.js";
 
 const U = 10;
 const to3 = (x, y) => ({ X: (x - 180) / U, Z: (y - 400) / U });
@@ -159,7 +159,7 @@ export function createView3D(canvas, THREE) {
    * Mái chùa Việt: mái chái (hip roof) có mặt lõm và bốn góc đầu đao cong vút.
    * Đáy mái ở y=0, nóc ở y=h. Trả về group gồm mặt mái, bờ nóc, bờ dải và đầu đao.
    */
-  function vietRoof(w, d, h, curl) {
+  function vietRoof(w, d, h, curl, mats = { tile: M.tile, edge: M.tileEdge }) {
     const g = new THREE.Group();
     const rl = Math.max(0.2, w - d * 0.95);
     const zone = Math.min(w, d) * 0.42;
@@ -206,15 +206,15 @@ export function createView3D(canvas, THREE) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     geo.computeVertexNormals();
-    const roof = mesh(geo, M.tile);
+    const roof = mesh(geo, mats.tile);
     g.add(roof);
     // bờ nóc (ridge) and bờ dải (hips) with upturned tips
-    g.add(box(rl + 0.4, 0.28, 0.34, M.tileEdge, 0, h + 0.1, 0));
+    g.add(box(rl + 0.4, 0.28, 0.34, mats.edge, 0, h + 0.1, 0));
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
         const tip = new V3(sx * (w / 2 + curl * 0.6), curl, sz * (d / 2 + curl * 0.6));
-        g.add(beam(tip, new V3((sx * rl) / 2, h + 0.05, 0), 0.12, M.tileEdge));
-        const horn = mesh(new THREE.ConeGeometry(0.13, curl * 1.1 + 0.3, 6), M.tileEdge);
+        g.add(beam(tip, new V3((sx * rl) / 2, h + 0.05, 0), 0.12, mats.edge));
+        const horn = mesh(new THREE.ConeGeometry(0.13, curl * 1.1 + 0.3, 6), mats.edge);
         horn.position.copy(tip).add(new V3(sx * 0.18, 0.32, sz * 0.18));
         horn.rotation.z = -sx * 0.6;
         horn.rotation.x = sz * 0.6;
@@ -359,23 +359,23 @@ export function createView3D(canvas, THREE) {
     while (n < 700) {
       const x = -60 + r() * 120;
       const z = -50 + r() * 100;
-      const inYard = x > -21.5 && x < 21.5 && z > -30.5 && z < 23.5;
-      if (inYard && !(x < -16 || x > 16 || z > 6 || z < -27)) continue;
+      const inYard = x > -21.5 && x < 21.5 && z > -33.5 && z < 23.5;
+      if (inYard && !(x < -17 || x > 17 || z > 6.8 || z < -31)) continue;
       m4.makeTranslation(x, 0.19, z);
       tuft.setMatrixAt(n++, m4);
     }
     scene.add(tuft);
   }
 
-  // Sân gạch Bát Tràng
-  const c0 = to3(20, 268);
-  const c1 = to3(340, 458);
+  // Sân gạch Bát Tràng (sân trước chính điện)
+  const c0 = to3(LAYOUT.courtyard.x, LAYOUT.courtyard.y);
+  const c1 = to3(LAYOUT.courtyard.x + LAYOUT.courtyard.w, LAYOUT.courtyard.y + LAYOUT.courtyard.h);
   {
-    const tex = canvasTex(640, 384, (g) => {
+    const tex = canvasTex(640, 160, (g) => {
       const r = rng(11);
       g.fillStyle = "#b99b7c";
-      g.fillRect(0, 0, 640, 384);
-      for (let y = 0; y < 12; y++) {
+      g.fillRect(0, 0, 640, 160);
+      for (let y = 0; y < 5; y++) {
         for (let x = 0; x < 20; x++) {
           const v = r();
           g.fillStyle = v < 0.33 ? "#b8714f" : v < 0.66 ? "#ad6849" : "#c07a57";
@@ -385,7 +385,7 @@ export function createView3D(canvas, THREE) {
     });
     const w = c1.X - c0.X;
     const d = c1.Z - c0.Z;
-    scene.add(box(w + 0.8, 0.12, d + 0.8, lambert(0x8d6b55), (c0.X + c1.X) / 2, 0.04, (c0.Z + c1.Z) / 2, { cast: false, receive: true }));
+    scene.add(box(w + 0.8, 0.12, d + 0.4, lambert(0x8d6b55), (c0.X + c1.X) / 2, 0.04, (c0.Z + c1.Z) / 2, { cast: false, receive: true }));
     const yard = mesh(new THREE.PlaneGeometry(w, d), lambert(0xc9b8a8, { map: tex }), (c0.X + c1.X) / 2, 0.11, (c0.Z + c1.Z) / 2, {
       cast: false,
       receive: true,
@@ -394,7 +394,7 @@ export function createView3D(canvas, THREE) {
     scene.add(yard);
   }
   // Lối đi đá
-  for (let z = 6.4; z < 21; z += 1.5) scene.add(box(3.6, 0.12, 1.25, M.stone, 0, 0.06, z, { cast: false, receive: true }));
+  for (let z = 7.4; z < 21; z += 1.5) scene.add(box(3.6, 0.12, 1.25, M.stone, 0, 0.06, z, { cast: false, receive: true }));
 
   // Tường bao
   const walls = new THREE.Group();
@@ -402,9 +402,9 @@ export function createView3D(canvas, THREE) {
   {
     const H = 1.4;
     const segs = [
-      [-21, -30, -21, 23],
-      [21, -30, 21, 23],
-      [-21, -30, 21, -30],
+      [-21, -33, -21, 23],
+      [21, -33, 21, 23],
+      [-21, -33, 21, -33],
       [-21, 23, -6.8, 23],
       [6.8, 23, 21, 23],
     ];
@@ -418,72 +418,102 @@ export function createView3D(canvas, THREE) {
     }
   }
 
-  // ── Chính điện ────────────────────────────────────────────────────────────
-  const hall = new THREE.Group();
-  hall.userData.kind = "altar";
+  // ── Chính điện 200 chỗ ────────────────────────────────────────────────────
+  // hallShell: nền, cột, vách, mái (một mô hình tải ngoài có thể thay phần này).
+  // hallInside: sàn, bệ thờ, tượng, bàn hương, đèn lồng (luôn giữ).
+  const FLOOR = 0.6;
+  const H0 = to3(LAYOUT.hall.x, LAYOUT.hall.y);
+  const H1 = to3(LAYOUT.hall.x + LAYOUT.hall.w, LAYOUT.hall.y + LAYOUT.hall.h);
+  const hallBox = { x0: H0.X, x1: H1.X, z0: H0.Z, z1: H1.Z, cx: (H0.X + H1.X) / 2, cz: (H0.Z + H1.Z) / 2, w: H1.X - H0.X, d: H1.Z - H0.Z };
+  const inHallFootprint = (X, Z) => X > hallBox.x0 && X < hallBox.x1 && Z > hallBox.z0 && Z < hallBox.z1;
+  const floorAt = (X, Z) => (inHallFootprint(X, Z) ? FLOOR : 0);
+  const hall = new THREE.Group(); // shell
+  const hallInside = new THREE.Group();
+  hallInside.userData.kind = "altar";
+  const roofMats = {
+    tile: lambert(COLORS.tile, { side: THREE.DoubleSide, transparent: true }),
+    edge: lambert(COLORS.tileEdge, { transparent: true }),
+    wood: lambert(COLORS.wood, { transparent: true }),
+    gold: new THREE.MeshStandardMaterial({ color: COLORS.gold, metalness: 0.55, roughness: 0.35, transparent: true }),
+    moss: lambert(0x7c8a6a, { transparent: true }),
+  };
+  const hallRoof = new THREE.Group();
+  const lanterns3d = [];
   {
-    const zc = -20.2;
-    hall.add(box(22.4, 0.9, 12, M.stone, 0, 0.45, zc, { receive: true }));
+    const { cx, cz, w, d } = hallBox;
+    hall.add(box(w + 0.8, FLOOR, d + 0.8, M.stone, cx, FLOOR / 2, cz, { receive: true }));
     [
-      [7.6, 0.6, -14.0],
-      [8.4, 0.4, -13.5],
-      [9.2, 0.2, -13.0],
-    ].forEach(([w, h, z]) => hall.add(box(w, h, 0.5, M.stoneDark, 0, h / 2, z, { receive: true })));
-    const f = 0.9;
-    hall.add(box(19.6, 5, 0.4, M.wood, 0, f + 2.5, -25.6, { receive: true }));
-    for (const sx of [-1, 1]) hall.add(box(0.4, 5, 10.8, M.wood, sx * 9.8, f + 2.5, zc));
-    const lattice = canvasTex(128, 128, (g) => {
-      g.fillStyle = "#4e2618";
-      g.fillRect(0, 0, 128, 128);
-      g.strokeStyle = "#7a4428";
-      g.lineWidth = 3;
-      for (let i = 0; i < 3; i++) g.strokeRect(6 + i * 41, 6, 36, 116);
-      g.beginPath();
-      for (let i = 0; i < 3; i++) {
-        g.moveTo(6 + i * 41, 46);
-        g.lineTo(42 + i * 41, 46);
-        for (let k = 1; k < 4; k++) {
-          g.moveTo(6 + i * 41 + k * 9, 6);
-          g.lineTo(6 + i * 41 + k * 9, 46);
-        }
+      [14, 0.45, hallBox.z1 + 0.45],
+      [15, 0.25, hallBox.z1 + 0.95],
+    ].forEach(([sw, sh, z]) => hall.add(box(sw, sh, 0.5, M.stoneDark, cx, sh / 2, z, { receive: true })));
+    // Floor of lacquered planks
+    const planks = canvasTex(256, 256, (g) => {
+      g.fillStyle = "#6a3a26";
+      g.fillRect(0, 0, 256, 256);
+      g.strokeStyle = "rgba(255,220,180,0.08)";
+      for (let y = 0; y < 256; y += 16) {
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(256, y);
+        g.stroke();
       }
-      g.stroke();
     });
-    const latticeMat = lambert(0xffffff, { map: lattice });
-    for (const sx of [-1, 1]) hall.add(box(5.6, 4.4, 0.25, latticeMat, sx * 6.6, f + 2.2, -15.0));
-    hall.add(box(19.6, 0.8, 0.25, M.wood, 0, f + 4.6, -15.0));
-    // Interior: dark floor, red lacquer altar, a still seated figure with a halo.
-    hall.add(box(19, 0.05, 10, M.dark, 0, f + 0.03, zc, { cast: false, receive: true }));
-    hall.add(box(6.4, 1.2, 1.8, M.lacquer, 0, f + 0.6, -19.6));
-    hall.add(box(6.6, 0.12, 2.0, M.gold, 0, f + 1.26, -19.6));
-    hall.add(mesh(new THREE.CylinderGeometry(1.05, 0.85, 0.35, 14), lambert(0xc98f9b), 0, f + 1.5, -19.7));
-    const legs = mesh(new THREE.SphereGeometry(1, 16, 10), M.gold, 0, f + 1.9, -19.7);
-    legs.scale.set(1.0, 0.42, 0.72);
-    hall.add(legs);
-    hall.add(mesh(new THREE.CylinderGeometry(0.42, 0.72, 1.35, 14), M.gold, 0, f + 2.7, -19.8));
-    hall.add(mesh(new THREE.SphereGeometry(0.4, 16, 12), M.gold, 0, f + 3.62, -19.8));
-    const halo = mesh(new THREE.TorusGeometry(0.85, 0.05, 6, 40), M.gold, 0, f + 3.62, -20.25);
-    hall.add(halo);
-    const haloGlow = glow(0xffd58a, 4.6, 0.55);
-    haloGlow.position.set(0, f + 3.6, -20.1);
-    hall.add(haloGlow);
+    planks.wrapS = planks.wrapT = THREE.RepeatWrapping;
+    planks.repeat.set(4, 4);
+    const floor = mesh(new THREE.PlaneGeometry(w, d), lambert(0xffffff, { map: planks }), cx, FLOOR + 0.01, cz, { cast: false, receive: true });
+    floor.rotation.x = -Math.PI / 2;
+    hallInside.add(floor);
+    // Pillars around the hall (open front and sides, like a great hall with its doors folded away)
+    const PH = 5.6;
+    const pillarGeo = new THREE.CylinderGeometry(0.3, 0.34, PH, 10);
+    const baseGeo = new THREE.CylinderGeometry(0.46, 0.5, 0.25, 10);
+    const pillarAt = (x, z) => {
+      hall.add(mesh(pillarGeo, M.pillar, x, FLOOR + PH / 2, z));
+      hall.add(mesh(baseGeo, M.stoneDark, x, FLOOR + 0.12, z));
+    };
+    for (const x of [-16, -11.6, -7.4, 7.4, 11.6, 16]) pillarAt(x, hallBox.z1 - 0.5);
+    for (let z = hallBox.z1 - 5.3; z > hallBox.z0 + 1; z -= 4.8) {
+      pillarAt(-16, z);
+      pillarAt(16, z);
+    }
+    // Back wall, low side balustrades, beams
+    hall.add(box(w, PH, 0.4, M.wood, cx, FLOOR + PH / 2, hallBox.z0 + 0.2, { receive: true }));
+    for (const sx of [-1, 1]) hall.add(box(0.3, 0.9, d - 1.6, M.woodLight, sx * 16.15, FLOOR + 0.45, cz - 0.4));
+    hall.add(box(w + 0.6, 0.5, 0.5, M.wood, cx, FLOOR + PH, hallBox.z1 - 0.5));
+    for (const sx of [-1, 1]) hall.add(box(0.5, 0.5, d, M.wood, sx * 16, FLOOR + PH, cz));
+    // Dais (bệ thờ), seated figure, halo, candles
+    const D0 = to3(LAYOUT.dais.x, LAYOUT.dais.y);
+    const D1 = to3(LAYOUT.dais.x + LAYOUT.dais.w, LAYOUT.dais.y + LAYOUT.dais.h);
+    const dz = (D0.Z + D1.Z) / 2;
+    hallInside.add(box(D1.X - D0.X + 1.6, 0.5, D1.Z - D0.Z, M.lacquer, 0, FLOOR + 0.25, dz));
+    hallInside.add(box(D1.X - D0.X, 0.5, D1.Z - D0.Z - 1.4, M.lacquer, 0, FLOOR + 0.75, dz - 0.7));
+    hallInside.add(box(D1.X - D0.X + 1.7, 0.08, 0.1, M.gold, 0, FLOOR + 0.5, D1.Z));
+    const fy = FLOOR + 1.0;
+    const fz = D0.Z + 2.6;
+    hallInside.add(mesh(new THREE.CylinderGeometry(1.9, 1.6, 0.5, 18), lambert(0xc98f9b), 0, fy + 0.25, fz));
+    const legs = mesh(new THREE.SphereGeometry(1, 18, 10), M.gold, 0, fy + 0.8, fz);
+    legs.scale.set(1.8, 0.7, 1.25);
+    hallInside.add(legs);
+    hallInside.add(mesh(new THREE.CylinderGeometry(0.75, 1.25, 2.3, 16), M.gold, 0, fy + 2.1, fz - 0.1));
+    hallInside.add(mesh(new THREE.SphereGeometry(0.68, 18, 14), M.gold, 0, fy + 3.65, fz - 0.1));
+    hallInside.add(mesh(new THREE.TorusGeometry(1.5, 0.08, 6, 48), M.gold, 0, fy + 3.65, fz - 0.9));
+    const haloGlow = glow(0xffd58a, 8, 0.55);
+    haloGlow.position.set(0, fy + 3.6, fz - 0.7);
+    hallInside.add(haloGlow);
     hall.userData.candles = [];
     for (const sx of [-1, 1]) {
-      hall.add(mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), M.candle, sx * 2.4, f + 1.62, -19.4));
-      const fl = mesh(new THREE.ConeGeometry(0.07, 0.24, 6), M.flame, sx * 2.4, f + 2.04, -19.4, { cast: false });
-      const gl = glow(0xffc070, 1.4, 0.7);
-      gl.position.set(sx * 2.4, f + 2.05, -19.4);
-      hall.add(fl, gl);
+      hallInside.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8), M.candle, sx * 3.2, FLOOR + 1.4, D1.Z - 1.2));
+      const fl = mesh(new THREE.ConeGeometry(0.08, 0.28, 6), M.flame, sx * 3.2, FLOOR + 1.95, D1.Z - 1.2, { cast: false });
+      const gl = glow(0xffc070, 1.6, 0.7);
+      gl.position.set(sx * 3.2, FLOOR + 1.95, D1.Z - 1.2);
+      hallInside.add(fl, gl);
       hall.userData.candles.push(fl, gl);
     }
-    // Pillars: son đỏ, front and back rows
-    for (const z of [-14.6, -25.4]) {
-      for (const x of [-8.9, -3.9, 3.9, 8.9]) {
-        hall.add(mesh(new THREE.CylinderGeometry(0.28, 0.32, 4.8, 10), M.pillar, x, f + 2.4, z));
-        hall.add(mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.25, 10), M.stoneDark, x, f + 0.12, z));
-      }
-    }
-    // Hoành phi
+    // Altar table for the incense bowl
+    const inc0 = to3(LAYOUT.incense.x, LAYOUT.incense.y);
+    hallInside.add(box(3.6, 0.9, 1.4, M.lacquer, inc0.X, FLOOR + 0.45, inc0.Z));
+    hallInside.add(box(3.8, 0.08, 1.5, M.gold, inc0.X, FLOOR + 0.92, inc0.Z));
+    // Name board on the back wall
     const board = canvasTex(256, 48, (g) => {
       g.fillStyle = "#b8903c";
       g.fillRect(0, 0, 256, 48);
@@ -497,40 +527,65 @@ export function createView3D(canvas, THREE) {
       g.fillText("AM MÂY", 128, 26);
     });
     hall.userData.board = board;
-    const boardMesh = mesh(new THREE.PlaneGeometry(4.2, 0.8), lambert(0xffffff, { map: board }), 0, f + 4.6, -14.86, { cast: false });
-    hall.add(boardMesh);
-    // Roofs (chồng diêm: two tiers)
-    const lower = vietRoof(24.4, 14.2, 2.6, 0.9);
-    lower.position.set(0, f + 4.95, zc);
-    hall.add(lower);
-    hall.add(box(14, 1.3, 6.6, M.wood, 0, f + 7.0, zc));
-    const upper = vietRoof(17, 8.6, 2.5, 0.75);
-    upper.position.set(0, f + 7.6, zc);
-    hall.add(upper);
-    // Lưỡng long chầu nguyệt, abstracted: a pearl and two curling forms on the ridge.
-    const ridgeY = f + 7.6 + 2.7;
-    hall.add(mesh(new THREE.SphereGeometry(0.38, 14, 10), M.gold, 0, ridgeY + 0.55, zc));
+    // Hoành phi on the front beam, facing the courtyard (the halo fills the back wall)
+    hall.add(mesh(new THREE.PlaneGeometry(6, 1.1), lambert(0xffffff, { map: board }), 0, FLOOR + PH - 0.6, hallBox.z1 - 0.2, { cast: false }));
+    // Hanging lanterns (đèn lồng) along the hall
+    for (const z of [-25, -18, -11, -4.5]) {
+      for (const x of [-9, 9]) {
+        const l = mesh(new THREE.SphereGeometry(0.42, 12, 8), lambert(0xc0392b, { emissive: 0x401008 }), x, FLOOR + 4.4, z, { cast: false });
+        l.scale.y = 1.25;
+        const gl = glow(0xffb070, 3.2, 0.5);
+        gl.position.set(x, FLOOR + 4.4, z);
+        hallInside.add(l, gl);
+        lanterns3d.push(gl);
+      }
+    }
+    // Roof: two tiers over the whole hall; fades out while you are inside
+    const lower = vietRoof(w + 3.2, d + 3.2, 4.2, 1.5, roofMats);
+    lower.position.set(cx, FLOOR + PH + 0.25, cz);
+    hallRoof.add(lower);
+    hallRoof.add(box(22, 1.6, 12, roofMats.wood, cx, FLOOR + PH + 3.4, cz));
+    const upper = vietRoof(26, 15, 3.6, 1.1, roofMats);
+    upper.position.set(cx, FLOOR + PH + 4.1, cz);
+    hallRoof.add(upper);
+    const ridgeY = FLOOR + PH + 4.1 + 3.8;
+    hallRoof.add(mesh(new THREE.SphereGeometry(0.5, 14, 10), roofMats.gold, 0, ridgeY + 0.6, cz));
     for (const sx of [-1, 1]) {
       const curve = new THREE.CatmullRomCurve3(
         [
-          [0.7, 0.1],
-          [1.3, 0.7],
-          [2.0, 0.2],
-          [2.7, 0.75],
-          [3.3, 0.35],
-        ].map(([x, y]) => new V3(sx * x, ridgeY + y, zc)),
+          [0.9, 0.1],
+          [1.7, 0.9],
+          [2.6, 0.25],
+          [3.5, 0.95],
+          [4.3, 0.45],
+        ].map(([x, y]) => new V3(sx * x, ridgeY + y, cz)),
       );
-      hall.add(mesh(new THREE.TubeGeometry(curve, 24, 0.11, 6, false), M.moss));
+      hallRoof.add(mesh(new THREE.TubeGeometry(curve, 24, 0.14, 6, false), roofMats.moss));
     }
+    hallRoof.traverse((o) => {
+      if (o.isMesh) o.castShadow = false; // keep the seated rows lit
+    });
+    hall.add(hallRoof);
   }
-  scene.add(hall);
+  scene.add(hall, hallInside);
+  const hallLights = [
+    [0, 4.6, -24],
+    [0, 4.6, -14],
+    [0, 4.6, -5],
+  ].map(([x, y, z]) => {
+    const l = new THREE.PointLight(0xffb46a, 0.8, 20, 1.6);
+    l.position.set(x, FLOOR + y, z);
+    scene.add(l);
+    return l;
+  });
+  let roofOpacity = 1;
 
-  // ── Đỉnh hương (bát hương) ────────────────────────────────────────────────
+  // ── Đỉnh hương (bát hương) trên bàn trước bệ thờ ─────────────────────────
   const inc = to3(LAYOUT.incense.x, LAYOUT.incense.y);
+  const BOWL_Y = FLOOR + 0.92 - 0.5; // legs stand on the altar table
   const bowl = new THREE.Group();
   bowl.userData.kind = "altar";
-  bowl.position.set(inc.X, 0, inc.Z);
-  bowl.add(box(1.7, 0.55, 1.7, M.stone, 0, 0.27, 0, { receive: true }));
+  bowl.position.set(inc.X, BOWL_Y, inc.Z);
   bowl.add(
     mesh(
       new THREE.LatheGeometry(
@@ -558,7 +613,7 @@ export function createView3D(canvas, THREE) {
     const tip = mesh(new THREE.SphereGeometry(0.04, 6, 4), M.ember, 0, 0, 0, { cast: false });
     const a = i * 2.39996;
     const rr = 0.12 + ((i * 37) % 10) * 0.045;
-    s.userData.base = new V3(inc.X + Math.cos(a) * rr, 1.27, inc.Z + Math.sin(a) * rr);
+    s.userData.base = new V3(inc.X + Math.cos(a) * rr, BOWL_Y + 1.27, inc.Z + Math.sin(a) * rr);
     s.visible = tip.visible = false;
     scene.add(s, tip);
     sticks.push({ s, tip });
@@ -573,10 +628,11 @@ export function createView3D(canvas, THREE) {
   }
   let smokeCursor = 0;
 
-  // ── Gác chuông ────────────────────────────────────────────────────────────
+  // ── Gác chuông (sân trước, bên trái) ──────────────────────────────────────
+  const bt = to3(LAYOUT.bellTower.x + LAYOUT.bellTower.w / 2, LAYOUT.bellTower.y + LAYOUT.bellTower.h / 2);
   const bellTower = new THREE.Group();
   bellTower.userData.kind = "bell";
-  bellTower.position.set(-14.5, 0, -12);
+  bellTower.position.set(bt.X, 0, bt.Z);
   bellTower.add(box(5.6, 0.5, 5.6, M.stone, 0, 0.25, 0, { receive: true }));
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) bellTower.add(mesh(new THREE.CylinderGeometry(0.17, 0.2, 4.7, 8), M.pillar, sx * 2.1, 2.85, sz * 2.1));
@@ -618,18 +674,26 @@ export function createView3D(canvas, THREE) {
     rippleMeshes.push(r);
   }
 
-  // ── Bồ đoàn ───────────────────────────────────────────────────────────────
-  const cushionMeshes = [];
-  for (const c of CUSHIONS) {
-    const p = to3(c.x, c.y);
-    const m = mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.3, 18), M.cushion, p.X, 0.27, p.Z, { receive: true });
-    m.userData.cushion = c.index;
-    const top = mesh(new THREE.CircleGeometry(0.6, 18), M.cushionTop, p.X, 0.43, p.Z, { cast: false });
-    top.rotation.x = -Math.PI / 2;
-    top.userData.cushion = c.index;
-    scene.add(m, top);
-    cushionMeshes.push(m, top);
+  // ── 200 bồ đoàn (instanced: hai lệnh vẽ cho cả điện) ─────────────────────
+  const cushionBody = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.6, 0.18, 14), M.cushion, CUSHIONS.length);
+  const topGeo = new THREE.CircleGeometry(0.36, 14);
+  topGeo.rotateX(-Math.PI / 2);
+  const cushionTop = new THREE.InstancedMesh(topGeo, M.cushionTop, CUSHIONS.length);
+  {
+    const m4 = new THREE.Matrix4();
+    for (const c of CUSHIONS) {
+      const p = to3(c.x, c.y);
+      m4.makeTranslation(p.X, FLOOR + 0.1, p.Z);
+      cushionBody.setMatrixAt(c.index, m4);
+      m4.makeTranslation(p.X, FLOOR + 0.195, p.Z);
+      cushionTop.setMatrixAt(c.index, m4);
+    }
   }
+  cushionBody.receiveShadow = true;
+  cushionBody.userData.cushionInstanced = true;
+  cushionTop.userData.cushionInstanced = true;
+  scene.add(cushionBody, cushionTop);
+  const cushionMeshes = [cushionBody, cushionTop];
 
   // ── Hồ sen ────────────────────────────────────────────────────────────────
   const pondGroup = new THREE.Group();
@@ -1008,7 +1072,8 @@ export function createView3D(canvas, THREE) {
     }
     const bob = pose === "walk" ? Math.abs(Math.sin(t * 9 + p.x)) * 0.07 : 0;
     const onCushion = sit || (p.seat != null && pose === "bow");
-    c.g.position.set(pos.X, (onCushion ? 0.42 : 0.08) + bob, pos.Z);
+    c.g.position.set(pos.X, floorAt(pos.X, pos.Z) + (onCushion ? 0.2 : 0.02) + bob, pos.Z);
+    c.g.scale.setScalar(PERSON_SCALE);
     c.lower.visible = !sit;
     c.legs.visible = sit;
     c.lower.scale.y = 1 - 0.45 * down;
@@ -1021,6 +1086,119 @@ export function createView3D(canvas, THREE) {
     c.pulse.material.opacity = Math.max(0, pl) * 0.8;
     c.pulse.scale.setScalar(1 + (1 - pl) * 0.8);
   }
+
+  // ── Đám đông: người chơi khác vẽ bằng InstancedMesh (vài lệnh vẽ cho 200 người) ──
+  const PERSON_SCALE = 0.8;
+  const crowd = (() => {
+    const N = TUNING.room.capacity;
+    const latheGeo = (pts) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 12);
+    const lowerGeo = latheGeo([
+      [0.001, 0],
+      [0.56, 0],
+      [0.5, 0.25],
+      [0.42, 0.6],
+      [0.38, 0.76],
+      [0.001, 0.76],
+    ]);
+    const upperGeo = latheGeo([
+      [0.001, 0],
+      [0.41, 0],
+      [0.37, 0.34],
+      [0.27, 0.55],
+      [0.15, 0.63],
+      [0.001, 0.63],
+    ]);
+    const legsGeo = new THREE.SphereGeometry(0.5, 12, 6);
+    legsGeo.scale(1.25, 0.42, 1.0);
+    const robeMat = lambert(0xffffff);
+    const parts = {
+      lower: new THREE.InstancedMesh(lowerGeo, robeMat, N),
+      legs: new THREE.InstancedMesh(legsGeo, robeMat, N),
+      upper: new THREE.InstancedMesh(upperGeo, robeMat, N),
+      head: new THREE.InstancedMesh(new THREE.SphereGeometry(0.31, 12, 8), M.skin, N),
+      hair: new THREE.InstancedMesh(new THREE.SphereGeometry(0.335, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.56), M.hair, N),
+      tuft: new THREE.InstancedMesh(new THREE.SphereGeometry(0.075, 6, 4), M.hair, N),
+    };
+    // Create the per-instance color buffer before the first draw: three.js r128 decides
+    // whether a material uses instance colors when it first compiles its shader.
+    const white = new THREE.Color(0xffffff);
+    for (const key of ["lower", "legs", "upper"]) for (let i = 0; i < N; i++) parts[key].setColorAt(i, white);
+    for (const m of Object.values(parts)) {
+      m.castShadow = true;
+      m.count = 0;
+      m.frustumCulled = false; // instances spread across the whole yard
+      scene.add(m);
+    }
+    const color = new THREE.Color();
+    const base = new THREE.Matrix4();
+    const tmp = new THREE.Matrix4();
+    const pivot = new THREE.Matrix4();
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    const q = new THREE.Quaternion();
+    const yAxis = new V3(0, 1, 0);
+    const state = new Map(); // id → { heading, prev }
+
+    function update(peers, t) {
+      let i = 0;
+      const alive = new Set();
+      for (const p of peers) {
+        if (i >= N) break;
+        alive.add(p.id);
+        const pos = to3(p.x, p.y);
+        const st = state.get(p.id) ?? { heading: Math.PI, prev: null };
+        const walking = p.walking;
+        if (walking && st.prev) {
+          const dx = pos.X - st.prev.X;
+          const dz = pos.Z - st.prev.Z;
+          if (dx * dx + dz * dz > 1e-6) st.target = Math.atan2(dx, dz);
+        } else if (!walking) st.target = Math.PI;
+        let dh = (st.target ?? st.heading) - st.heading;
+        dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+        st.heading += dh * 0.2;
+        st.prev = pos;
+        state.set(p.id, st);
+
+        const sit = p.pose === "sit" && !walking;
+        let down = 0;
+        if (p.pose === "bow" && !walking) {
+          const k = p.bowT ?? 0;
+          down = k < 0.35 ? k / 0.35 : k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+        }
+        const onCushion = sit || (p.seat != null && p.pose === "bow");
+        const bob = walking ? Math.abs(Math.sin(t * 9 + p.x)) * 0.07 : 0;
+        q.setFromAxisAngle(yAxis, st.heading);
+        base.compose(new V3(pos.X, floorAt(pos.X, pos.Z) + (onCushion ? 0.2 : 0.02) + bob, pos.Z), q, new V3(PERSON_SCALE, PERSON_SCALE, PERSON_SCALE));
+
+        parts.lower.setMatrixAt(i, sit ? zero : tmp.copy(base).multiply(new THREE.Matrix4().makeScale(1, 1 - 0.45 * down, 1)));
+        parts.legs.setMatrixAt(i, sit ? tmp.copy(base).multiply(new THREE.Matrix4().makeTranslation(0, 0.17, 0.12)) : zero);
+        pivot.copy(base).multiply(new THREE.Matrix4().makeTranslation(0, sit ? 0.3 : 0.72 - 0.34 * down, 0));
+        pivot.multiply(new THREE.Matrix4().makeRotationX(down * 1.15));
+        parts.upper.setMatrixAt(i, pivot);
+        parts.head.setMatrixAt(i, tmp.copy(pivot).multiply(new THREE.Matrix4().makeTranslation(0, 0.93, 0)));
+        if (p.head === "troc") {
+          parts.hair.setMatrixAt(i, zero);
+          parts.tuft.setMatrixAt(i, tmp.copy(pivot).multiply(new THREE.Matrix4().makeTranslation(0, 1.21, 0.1)));
+        } else {
+          parts.tuft.setMatrixAt(i, zero);
+          parts.hair.setMatrixAt(i, tmp.copy(pivot).multiply(new THREE.Matrix4().makeTranslation(0, 0.95, -0.02)).multiply(new THREE.Matrix4().makeRotationX(-0.32)));
+        }
+        color.setHex(ROBE[p.robe] ?? ROBE.lam);
+        // A soft brighten on mõ / chuỗi hạt so neighbours notice, without any text.
+        if (p.pulse > 0) color.lerp(new THREE.Color(0xf0ce78), p.pulse * 0.5);
+        parts.lower.setColorAt(i, color);
+        parts.legs.setColorAt(i, color);
+        parts.upper.setColorAt(i, color);
+        i++;
+      }
+      for (const m of Object.values(parts)) {
+        m.count = i;
+        m.instanceMatrix.needsUpdate = true;
+        if (m.instanceColor) m.instanceColor.needsUpdate = true;
+      }
+      for (const id of state.keys()) if (!alive.has(id)) state.delete(id);
+    }
+    return { update };
+  })();
 
   // ── Camera ────────────────────────────────────────────────────────────────
   const cam = {
@@ -1139,7 +1317,18 @@ export function createView3D(canvas, THREE) {
 
   const raycaster = new THREE.Raycaster();
   const groundPlane = new THREE.Plane(new V3(0, 1, 0), -0.1);
-  const interactive = [hall, bowl, bellTower, pondGroup, ...cushionMeshes];
+  const floorPlane = new THREE.Plane(new V3(0, 1, 0), -FLOOR);
+  // Invisible volume over the dais: raycast still hits it, so tapping the altar walks there.
+  const altarPick = (() => {
+    const D0 = to3(LAYOUT.dais.x, LAYOUT.dais.y);
+    const D1 = to3(LAYOUT.dais.x + LAYOUT.dais.w, LAYOUT.dais.y + LAYOUT.dais.h + 14);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(D1.X - D0.X, 6, D1.Z - D0.Z), new THREE.MeshBasicMaterial({ visible: false }));
+    m.position.set((D0.X + D1.X) / 2, FLOOR + 3, (D0.Z + D1.Z) / 2);
+    m.userData.kind = "altar";
+    scene.add(m);
+    return m;
+  })();
+  const interactive = [altarPick, bowl, bellTower, pondGroup, ...cushionMeshes];
 
   /** Đổi điểm chạm thành kết quả giống world.hitTest (cushion/altar/bell/pond/walk/taken). */
   function pick(clientX, clientY) {
@@ -1150,6 +1339,10 @@ export function createView3D(canvas, THREE) {
     const hits = raycaster.intersectObjects(interactive, true);
     for (const h of hits) {
       let o = h.object;
+      if (o.userData.cushionInstanced && h.instanceId != null) {
+        const c = CUSHIONS[h.instanceId];
+        return taken.has(c.index) ? { kind: "taken", cushion: c.index } : { kind: "cushion", cushion: c.index, stand: { x: c.x, y: c.y } };
+      }
       while (o && o.userData.cushion === undefined && !o.userData.kind) o = o.parent;
       if (!o) continue;
       if (o.userData.cushion !== undefined) {
@@ -1159,6 +1352,8 @@ export function createView3D(canvas, THREE) {
       const spot = HOTSPOTS.find((s) => s.kind === o.userData.kind);
       if (spot) return { kind: spot.kind, stand: spot.stand };
     }
+    const f = raycaster.ray.intersectPlane(floorPlane, new V3());
+    if (f && inHallFootprint(f.x, f.z)) return hitTest(from3(f.x, f.z), taken);
     const g = raycaster.ray.intersectPlane(groundPlane, new V3());
     if (!g) return null;
     return hitTest(from3(g.x, g.z), taken);
@@ -1197,6 +1392,15 @@ export function createView3D(canvas, THREE) {
     hemi.color.set(night ? 0x6070a0 : 0xdfe9ff);
     const flick = 0.9 + 0.1 * Math.sin(t * 13) * Math.sin(t * 7.3);
     hallLight.intensity = (1.1 + k * 1.6) * flick;
+    for (const l of hallLights) l.intensity = (0.5 + k * 1.2) * flick;
+    for (const g of lanterns3d) g.material.opacity = 0.25 + k * 0.6;
+    // Lift the roof away while you are inside the hall, so the seated rows show.
+    const inside = st.entered && zoneOf(st.me) === "hall";
+    roofOpacity += ((inside ? 0.12 : 1) - roofOpacity) * Math.min(1, dt * 4);
+    for (const m of Object.values(roofMats)) {
+      m.opacity = roofOpacity;
+      m.depthWrite = roofOpacity > 0.95;
+    }
     for (const c of hall.userData.candles) c.scale.setScalar(0.9 + 0.2 * flick);
     cloudMat.opacity = night ? 0.08 : 0.55;
     for (const c of clouds) {
@@ -1284,8 +1488,8 @@ export function createView3D(canvas, THREE) {
     for (const c of people.values()) c.seen = false;
     if (st.entered) {
       syncPerson("me", st.me, t, true);
-      for (const p of st.peers) syncPerson(p.id, p, t, false);
     }
+    crowd.update(st.entered ? st.peers : [], t);
     for (const [id, c] of people) {
       if (!c.seen) {
         scene.remove(c.g);
@@ -1371,6 +1575,7 @@ export function createView3D(canvas, THREE) {
     if (!THREE.GLTFLoader) return;
     const loader = new THREE.GLTFLoader();
     for (const slot of MODEL_SLOTS) {
+      if (!slot.enabled) continue;
       // A missing file is normal (the model is optional): keep the hand-built part.
       loader.load(slot.url, (gltf) => placeModel(gltf.scene, slot), undefined, () => {});
     }

@@ -26,7 +26,7 @@
 
 *From `design/game-brief.md`, scoped to this story:*
 
-- [x] Mỗi sân tối đa 24 người (= số bồ đoàn); người mới vào sân đông nhất còn chỗ.
+- [x] Mỗi sân tối đa 24 người (= số bồ đoàn); người mới vào sân đông nhất còn chỗ. *(Story 009 nâng lên 200 chỗ mỗi chính điện.)*
 - [x] Chỉ chia sẻ mã ngẫu nhiên, màu áo, dáng, vị trí, tư thế, bồ đoàn; không tên, không chữ.
 - [x] Hai người không ngồi cùng một bồ đoàn; giới hạn 8 hành động/5 giây; hết chỗ thì báo và chơi riêng, không xếp hàng.
 - [x] Không có máy chủ (file tĩnh, artifact): ghi rõ "Một mình, yên tĩnh", không giả lập người ảo.

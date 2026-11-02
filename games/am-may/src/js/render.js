@@ -351,103 +351,130 @@ function curvedRoof(ctx, x0, x1, yEave, yRidge, inset, curl, fill, edge) {
   ctx.stroke();
 }
 
+/**
+ * Chính điện lớn, vẽ dạng bổ cắt: mái sau và vách hậu ở trên, nền điện với
+ * 200 bồ đoàn ở giữa, mặt trước để ngỏ ra sân. Tượng chỉ là bóng ngồi có hào quang.
+ */
 function drawHall(ctx) {
+  const h = LAYOUT.hall;
+  const d = LAYOUT.dais;
   const tile = "#6b3326";
   const edge = "#4a2219";
-  // Stone platform and steps
-  ctx.fillStyle = "#a39d8f";
-  ctx.fillRect(74, 240, 212, 22);
-  ctx.fillStyle = "#8d877a";
-  for (let i = 0; i < 3; i++) ctx.fillRect(146 - i * 4, 252 + i * 5, 68 + i * 8, 5);
-  // Walls: dark lacquered wood
+  // Back roof (seen beyond the cut-away interior), two tiers
+  curvedRoof(ctx, h.x - 8, h.x + h.w + 8, 104, 64, 74, 14, tile, edge);
   ctx.fillStyle = "#4e2618";
-  ctx.fillRect(84, 182, 192, 60);
-  // Doorway with warm interior
-  const door = ctx.createLinearGradient(0, 192, 0, 242);
-  door.addColorStop(0, "#2a120b");
-  door.addColorStop(1, "#4a2412");
-  ctx.fillStyle = door;
-  ctx.fillRect(148, 198, 64, 44);
-  // Side lattice doors (cửa bức bàn)
-  ctx.strokeStyle = "#6e3a22";
-  ctx.lineWidth = 1;
-  for (const x0 of [96, 222]) {
-    for (let i = 0; i < 3; i++) {
-      ctx.strokeRect(x0 + i * 14, 196, 12, 44);
-      ctx.beginPath();
-      ctx.moveTo(x0 + i * 14, 212);
-      ctx.lineTo(x0 + i * 14 + 12, 212);
-      ctx.stroke();
-    }
-  }
-  // Altar figure: a seated silhouette with halo, deliberately simple and still.
-  const halo = ctx.createRadialGradient(180, 210, 2, 180, 210, 20);
-  halo.addColorStop(0, "rgba(240,200,110,0.9)");
-  halo.addColorStop(1, "rgba(240,200,110,0)");
-  ctx.fillStyle = halo;
-  ctx.beginPath();
-  ctx.arc(180, 210, 20, 0, Math.PI * 2);
-  ctx.fill();
-  const gold = ctx.createLinearGradient(166, 204, 194, 240);
-  gold.addColorStop(0, "#e6c26a");
-  gold.addColorStop(1, "#a07a2c");
-  ctx.fillStyle = gold;
-  ctx.beginPath();
-  ctx.moveTo(165, 238);
-  ctx.quadraticCurveTo(164, 222, 172, 218);
-  ctx.lineTo(188, 218);
-  ctx.quadraticCurveTo(196, 222, 195, 238);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(180, 211, 5.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#c98f9b";
-  ctx.beginPath();
-  ctx.ellipse(180, 240, 18, 3.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Pillars: son đỏ (cinnabar)
-  ctx.fillStyle = "#8c2f1e";
-  for (const x of [88, 140, 212, 264]) ctx.fillRect(x, 184, 8, 58);
-  // Two-tier roof (chồng diêm)
-  curvedRoof(ctx, 64, 296, 184, 156, 30, 12, tile, edge);
-  ctx.fillStyle = "#4e2618";
-  ctx.fillRect(112, 146, 136, 12);
-  curvedRoof(ctx, 96, 264, 150, 126, 26, 10, tile, edge);
-  // Lưỡng long chầu nguyệt, abstracted: a pearl with two flame curls on the ridge.
+  ctx.fillRect(84, 52, 192, 13);
+  curvedRoof(ctx, 70, 290, 58, 30, 52, 10, tile, edge);
   ctx.fillStyle = "#c9a24a";
   ctx.beginPath();
-  ctx.arc(180, 119, 4, 0, Math.PI * 2);
+  ctx.arc(180, 23, 4, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#7c8a6a";
   ctx.lineWidth = 2;
-  for (const s of [-1, 1]) {
+  for (const sgn of [-1, 1]) {
     ctx.beginPath();
-    ctx.moveTo(180 + s * 8, 125);
-    ctx.bezierCurveTo(180 + s * 14, 114, 180 + s * 24, 128, 180 + s * 30, 118);
+    ctx.moveTo(180 + sgn * 8, 29);
+    ctx.bezierCurveTo(180 + sgn * 14, 18, 180 + sgn * 24, 32, 180 + sgn * 30, 22);
     ctx.stroke();
   }
-  // Hoành phi: the name board sits just under the lower eave.
+  // Stone platform edge and the floor: warm lacquered planks
+  ctx.fillStyle = "#a39d8f";
+  ctx.fillRect(h.x - 4, h.y, h.w + 8, h.h + 8);
+  ctx.fillStyle = "#6a3a26";
+  ctx.fillRect(h.x, h.y, h.w, h.h);
+  ctx.strokeStyle = "rgba(255,220,180,0.07)";
+  ctx.lineWidth = 1;
+  for (let y = h.y + 10; y < h.y + h.h; y += 10) {
+    ctx.beginPath();
+    ctx.moveTo(h.x, y);
+    ctx.lineTo(h.x + h.w, y);
+    ctx.stroke();
+  }
+  // Back wall with lattice panels
+  ctx.fillStyle = "#4e2618";
+  ctx.fillRect(h.x, h.y, h.w, 12);
+  ctx.strokeStyle = "#7a4428";
+  for (let x = h.x + 6; x < h.x + h.w - 10; x += 16) ctx.strokeRect(x, h.y + 2, 12, 8);
+  // Side walls and pillars (son đỏ), seen from above as rings
+  ctx.fillStyle = "#4e2618";
+  ctx.fillRect(h.x, h.y, 6, h.h);
+  ctx.fillRect(h.x + h.w - 6, h.y, 6, h.h);
+  for (let y = h.y + 16; y <= h.y + h.h - 4; y += 46) {
+    for (const x of [h.x + 3, h.x + h.w - 3]) {
+      ctx.fillStyle = "#8c2f1e";
+      ctx.beginPath();
+      ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#a39d8f";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  // Dais (bệ thờ): two lacquered steps with gold trim
+  ctx.fillStyle = "#5a1a10";
+  ctx.fillRect(d.x - 8, d.y + 30, d.w + 16, d.h - 30);
+  ctx.fillStyle = "#7a2416";
+  ctx.fillRect(d.x, d.y, d.w, d.h - 8);
+  ctx.fillStyle = "#c9a24a";
+  ctx.fillRect(d.x - 8, d.y + d.h - 2, d.w + 16, 2);
+  ctx.fillRect(d.x, d.y + d.h - 10, d.w, 2);
+  // Hoành phi on the back wall
   ctx.fillStyle = "#b8903c";
-  ctx.fillRect(150, 186.5, 60, 10.5);
+  ctx.fillRect(150, h.y + 1, 60, 10);
   ctx.fillStyle = "#5a1e12";
   ctx.font = "600 5.6px 'Be Vietnam Pro', system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("AM MÂY", 180, 194.6);
+  ctx.fillText("AM MÂY", 180, h.y + 8.2);
+  // Seated figure with halo: still, simple, centered on the dais
+  const cx = 180;
+  const cy = d.y + 34;
+  const halo = ctx.createRadialGradient(cx, cy - 6, 2, cx, cy - 6, 28);
+  halo.addColorStop(0, "rgba(240,200,110,0.9)");
+  halo.addColorStop(1, "rgba(240,200,110,0)");
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 6, 28, 0, Math.PI * 2);
+  ctx.fill();
+  const gold = ctx.createLinearGradient(cx - 18, cy - 12, cx + 18, cy + 26);
+  gold.addColorStop(0, "#e6c26a");
+  gold.addColorStop(1, "#a07a2c");
+  ctx.fillStyle = gold;
+  ctx.beginPath();
+  ctx.moveTo(cx - 20, cy + 24);
+  ctx.quadraticCurveTo(cx - 21, cy + 4, cx - 10, cy);
+  ctx.lineTo(cx + 10, cy);
+  ctx.quadraticCurveTo(cx + 21, cy + 4, cx + 20, cy + 24);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#c98f9b";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 26, 26, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Altar table in front of the dais, where the incense bowl stands
+  ctx.fillStyle = "#5a1a10";
+  ctx.fillRect(154, d.y + d.h, 52, 12);
+  // Front edge: stone step, central stairs, eave shadow
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(h.x, h.y + h.h - 8, h.w, 8);
+  ctx.fillStyle = "#8d877a";
+  ctx.fillRect(140, h.y + h.h + 4, 80, 5);
 }
 
 function drawBellTower(ctx) {
   const t = LAYOUT.bellTower;
   ctx.fillStyle = "#a39d8f";
-  ctx.fillRect(t.x + 2, t.y + 108, t.w - 4, 10);
+  ctx.fillRect(t.x + 2, t.y + t.h - 8, t.w - 4, 8);
   ctx.fillStyle = "#7a2a1a";
-  ctx.fillRect(t.x + 8, t.y + 30, 6, 80);
-  ctx.fillRect(t.x + t.w - 14, t.y + 30, 6, 80);
+  ctx.fillRect(t.x + 10, t.y + 20, 5, t.h - 28);
+  ctx.fillRect(t.x + t.w - 15, t.y + 20, 5, t.h - 28);
   ctx.fillStyle = "#4e2618";
-  ctx.fillRect(t.x + 8, t.y + 30, t.w - 16, 6);
-  curvedRoof(ctx, t.x + 4, t.x + t.w - 4, t.y + 30, t.y + 12, 14, 7, "#6b3326", "#4a2219");
-  curvedRoof(ctx, t.x + 14, t.x + t.w - 14, t.y + 12, t.y, 8, 5, "#6b3326", "#4a2219");
+  ctx.fillRect(t.x + 10, t.y + 20, t.w - 20, 4);
+  curvedRoof(ctx, t.x + 4, t.x + t.w - 4, t.y + 20, t.y + 8, 14, 6, "#6b3326", "#4a2219");
+  curvedRoof(ctx, t.x + 16, t.x + t.w - 16, t.y + 8, t.y - 2, 8, 4, "#6b3326", "#4a2219");
 }
 
 function drawTree(ctx) {
@@ -457,20 +484,15 @@ function drawTree(ctx) {
   ctx.lineWidth = 9;
   ctx.beginPath();
   ctx.moveTo(x, y + 4);
-  ctx.bezierCurveTo(x - 6, y - 30, x + 6, y - 50, x - 8, y - 70);
-  ctx.stroke();
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(x - 2, y - 40);
-  ctx.quadraticCurveTo(x - 24, y - 50, x - 34, y - 72);
+  ctx.bezierCurveTo(x - 4, y - 14, x + 4, y - 26, x - 6, y - 38);
   ctx.stroke();
   const rr = rng(13);
   // Lá bồ đề: canopy as clusters of heart-ish leaves.
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 46; i++) {
     const a = rr() * Math.PI * 2;
-    const d = Math.sqrt(rr()) * r;
-    const lx = x - 10 + Math.cos(a) * d;
-    const ly = y - 92 + Math.sin(a) * d * 0.7;
+    const d = Math.sqrt(rr()) * r * 0.62;
+    const lx = x - 8 + Math.cos(a) * d;
+    const ly = y - 48 + Math.sin(a) * d * 0.7;
     ctx.fillStyle = rr() < 0.5 ? "#355d3a" : rr() < 0.5 ? "#41703f" : "#2c4f33";
     leaf(ctx, lx, ly, 5 + rr() * 3, rr() * Math.PI);
   }
@@ -515,16 +537,16 @@ function drawCushions(ctx) {
   for (const c of CUSHIONS) {
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath();
-    ctx.ellipse(c.x, c.y + 2, 12.5, 6.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(c.x, c.y + 1, 6, 3.4, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#9b5a28";
+    ctx.fillStyle = "#b0672e";
     ctx.beginPath();
-    ctx.ellipse(c.x, c.y, 12, 6.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(c.x, c.y, 5.6, 3.2, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = "#6f3f1c";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.6;
     ctx.beginPath();
-    ctx.ellipse(c.x, c.y, 8, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(c.x, c.y, 3.4, 1.9, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
 }
@@ -552,6 +574,7 @@ export function drawPerson(ctx, p, t) {
   ctx.save();
   ctx.globalAlpha = p.alpha ?? 1;
   ctx.translate(p.x, p.y);
+  if (p.scale) ctx.scale(p.scale, p.scale);
   const robe = ROBE[p.robe] ?? ROBE.lam;
   if (p.self) {
     ctx.strokeStyle = "rgba(240,206,120,0.85)";
@@ -641,10 +664,11 @@ export function drawPerson(ctx, p, t) {
 export function drawBell(ctx, swing) {
   const t = LAYOUT.bellTower;
   const cx = t.x + t.w / 2;
-  const top = t.y + 36;
+  const top = t.y + 24;
   ctx.save();
   ctx.translate(cx, top);
   ctx.rotate(swing);
+  ctx.scale(0.72, 0.72);
   const g = ctx.createLinearGradient(-11, 0, 11, 0);
   g.addColorStop(0, "#5a4a24");
   g.addColorStop(0.45, "#a88a46");
@@ -669,7 +693,7 @@ export function drawBell(ctx, swing) {
   ctx.restore();
   // Chày kình: the hanging wooden striker
   ctx.fillStyle = "#7d5a3a";
-  ctx.fillRect(cx + 12 - Math.max(0, swing) * 20, top + 16, 16, 4);
+  ctx.fillRect(cx + 9 - Math.max(0, swing) * 14, top + 12, 12, 3);
 }
 
 /** Bát hương (đỉnh) trước chính điện, với số nén nhang đang cháy. */
@@ -741,7 +765,7 @@ export function drawNightSky(ctx, phase, t, isRam) {
     ctx.fillStyle = `rgba(255,250,235,${0.55 * tw})`;
     ctx.fillRect(x, y, 1.1, 1.1);
   }
-  drawMoon(ctx, 236, 58, isRam ? 16 : 12, phase, isRam);
+  drawMoon(ctx, 236, 40, isRam ? 12 : 9, phase, isRam);
 }
 
 function drawMoon(ctx, x, y, rad, phase, glowBig) {
@@ -774,17 +798,24 @@ function drawMoon(ctx, x, y, rad, phase, glowBig) {
 /** Ánh sáng chính điện + nến bập bùng (vẽ sau lớp tối). */
 export function drawAltarLight(ctx, t, dark) {
   const flick = 0.85 + 0.15 * Math.sin(t * 13) * Math.sin(t * 7.3);
-  const g = ctx.createRadialGradient(180, 222, 4, 180, 222, 46 + dark * 30);
+  const h = LAYOUT.hall;
+  // Warm lamplight filling the hall, stronger at night so the seated rows stay visible.
+  const room = ctx.createRadialGradient(180, 220, 20, 180, 260, 230);
+  room.addColorStop(0, `rgba(255,190,110,${(0.06 + dark * 0.55) * flick})`);
+  room.addColorStop(1, "rgba(255,190,110,0)");
+  ctx.fillStyle = room;
+  ctx.fillRect(h.x, h.y, h.w, h.h);
+  const g = ctx.createRadialGradient(180, 140, 4, 180, 140, 50 + dark * 30);
   g.addColorStop(0, `rgba(255,196,110,${(0.25 + dark * 0.6) * flick})`);
   g.addColorStop(1, "rgba(255,196,110,0)");
   ctx.fillStyle = g;
-  ctx.fillRect(120, 170, 120, 100);
-  for (const x of [158, 202]) {
+  ctx.fillRect(110, 90, 140, 110);
+  for (const x of [146, 214]) {
     ctx.fillStyle = "#e9dcc0";
-    ctx.fillRect(x - 1, 228, 2, 10);
+    ctx.fillRect(x - 1, 160, 2, 12);
     ctx.fillStyle = `rgba(255,${190 + flick * 40},120,0.95)`;
     ctx.beginPath();
-    ctx.ellipse(x, 225 - flick, 1.4, 3 * flick, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, 157 - flick, 1.4, 3 * flick, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -854,7 +885,7 @@ export function drawLantern(ctx, pos, color, t) {
 export function drawRipples(ctx, ripples, t) {
   const t0 = LAYOUT.bellTower;
   const cx = t0.x + t0.w / 2;
-  const cy = t0.y + 52;
+  const cy = t0.y + 34;
   for (let i = ripples.length - 1; i >= 0; i--) {
     const age = t - ripples[i];
     if (age > 5) {
@@ -910,13 +941,13 @@ export function drawFireflies(ctx, t) {
 /** Lá bồ đề rơi chậm. leaves: mảng {x,y,born,seed}. */
 export function drawFallingLeaves(ctx, leaves, t) {
   if (leaves.length < 3 && Math.random() < 0.004) {
-    leaves.push({ x: LAYOUT.tree.trunkX - 40 + Math.random() * 60, y: LAYOUT.tree.trunkY - 90, born: t, seed: Math.random() * 6 });
+    leaves.push({ x: LAYOUT.tree.trunkX - 34 + Math.random() * 40, y: LAYOUT.tree.trunkY - 56, born: t, seed: Math.random() * 6 });
   }
   for (let i = leaves.length - 1; i >= 0; i--) {
     const l = leaves[i];
     const age = t - l.born;
     const y = l.y + age * 12;
-    if (y > 470) {
+    if (y > LAYOUT.tree.trunkY + 14) {
       leaves.splice(i, 1);
       continue;
     }
