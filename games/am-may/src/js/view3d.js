@@ -3,6 +3,7 @@
 // 360×640 của world.js; ở đây 1 đơn vị 3D = 10 điểm mặt bằng.
 // Kéo để xoay quanh am, chụm hai ngón (hoặc lăn chuột) để gần/xa, chạm để đi.
 
+import { MODEL_SLOTS } from "./assets.js";
 import { TUNING } from "./tuning.js";
 import { CUSHIONS, HOTSPOTS, LAYOUT, hitTest } from "./world.js";
 
@@ -396,6 +397,8 @@ export function createView3D(canvas, THREE) {
   for (let z = 6.4; z < 21; z += 1.5) scene.add(box(3.6, 0.12, 1.25, M.stone, 0, 0.06, z, { cast: false, receive: true }));
 
   // Tường bao
+  const walls = new THREE.Group();
+  scene.add(walls);
   {
     const H = 1.4;
     const segs = [
@@ -410,8 +413,8 @@ export function createView3D(canvas, THREE) {
       const along = x0 === x1 ? "z" : "x";
       const w = along === "x" ? len : 0.5;
       const d = along === "z" ? len : 0.5;
-      scene.add(box(w, H, d, M.wall, (x0 + x1) / 2, H / 2, (z0 + z1) / 2, { receive: true }));
-      scene.add(box(w + 0.3, 0.22, d + 0.3, M.tile, (x0 + x1) / 2, H + 0.11, (z0 + z1) / 2));
+      walls.add(box(w, H, d, M.wall, (x0 + x1) / 2, H / 2, (z0 + z1) / 2, { receive: true }));
+      walls.add(box(w + 0.3, 0.22, d + 0.3, M.tile, (x0 + x1) / 2, H + 0.11, (z0 + z1) / 2));
     }
   }
 
@@ -774,6 +777,8 @@ export function createView3D(canvas, THREE) {
   }
 
   // ── Cổng tam quan ─────────────────────────────────────────────────────────
+  const gate = new THREE.Group();
+  scene.add(gate);
   {
     const gz = 23;
     const shape = new THREE.Shape();
@@ -793,14 +798,14 @@ export function createView3D(canvas, THREE) {
     };
     shape.holes.push(arch(0, 3.4, 3.6), arch(-4.2, 2.0, 2.7), arch(4.2, 2.0, 2.7));
     const wall = mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: false }), M.wall, 0, 0, gz - 0.45, { receive: true });
-    scene.add(wall);
+    gate.add(wall);
     const r1 = vietRoof(15, 2.6, 0.9, 0.5);
     r1.position.set(0, 4.4, gz);
-    scene.add(r1);
-    scene.add(box(6.6, 0.8, 1.6, M.wall, 0, 5.4, gz));
+    gate.add(r1);
+    gate.add(box(6.6, 0.8, 1.6, M.wall, 0, 5.4, gz));
     const r2 = vietRoof(7.4, 2.4, 0.85, 0.45);
     r2.position.set(0, 5.75, gz);
-    scene.add(r2);
+    gate.add(r2);
   }
 
   // ── Lũy tre và núi xa ─────────────────────────────────────────────────────
@@ -1319,6 +1324,58 @@ export function createView3D(canvas, THREE) {
     tex.needsUpdate = true;
   }
 
+  // ── Mô hình tải ngoài (glTF/GLB) ──────────────────────────────────────────
+  const procedural = { hall, bellTower, gate, walls };
+  const loadedCredits = [];
+
+  /** Co giãn và đặt mô hình vào vùng của ô, ẩn phần dựng bằng code mà nó thay thế. */
+  function placeModel(obj, slot) {
+    obj.rotation.y = slot.yaw ?? 0;
+    obj.updateMatrixWorld(true);
+    const size = new THREE.Box3().setFromObject(obj).getSize(new V3());
+    obj.scale.setScalar(Math.min(slot.width / Math.max(size.x, 1e-3), slot.depth / Math.max(size.z, 1e-3)));
+    obj.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(obj);
+    const c = box2.getCenter(new V3());
+    obj.position.x += slot.center[0] - c.x;
+    obj.position.z += slot.center[1] - c.z;
+    obj.position.y += (slot.y ?? 0) - box2.min.y;
+    obj.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true;
+      o.receiveShadow = true;
+      // The renderer outputs linear colors (like the hand-built scene); show textures as authored.
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        for (const key of ["map", "emissiveMap"]) {
+          if (m?.[key]) {
+            m[key].encoding = THREE.LinearEncoding;
+            m[key].needsUpdate = true;
+          }
+        }
+      }
+    });
+    obj.userData.kind = slot.kind;
+    scene.add(obj);
+    for (const id of slot.hides ?? []) {
+      const part = procedural[id];
+      if (!part) continue;
+      part.visible = false;
+      const i = interactive.indexOf(part);
+      if (i >= 0) interactive.splice(i, 1);
+    }
+    interactive.push(obj);
+    loadedCredits.push(slot.credit);
+  }
+
+  function loadModels() {
+    if (!THREE.GLTFLoader) return;
+    const loader = new THREE.GLTFLoader();
+    for (const slot of MODEL_SLOTS) {
+      // A missing file is normal (the model is optional): keep the hand-built part.
+      loader.load(slot.url, (gltf) => placeModel(gltf.scene, slot), undefined, () => {});
+    }
+  }
+
   function dispose() {
     for (const [el, type, fn, opts] of listeners) el.removeEventListener(type, fn, opts);
     renderer.dispose();
@@ -1328,5 +1385,6 @@ export function createView3D(canvas, THREE) {
   resize();
   cam.radius = cam.want.radius;
   canvas.style.touchAction = "none";
-  return { kind: "3d", resize, render, onTap, worldToScreen, invalidate, dispose };
+  loadModels();
+  return { kind: "3d", resize, render, onTap, worldToScreen, invalidate, dispose, credits: () => [...loadedCredits] };
 }

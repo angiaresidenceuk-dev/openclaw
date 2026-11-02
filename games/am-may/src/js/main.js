@@ -1,5 +1,6 @@
 // Am Mây — vòng lặp chính: nối cảnh, nghi thức, tĩnh tâm, hiện diện và giao diện.
 
+import { LIBRARY_CREDITS } from "./assets.js";
 import { createAudio } from "./audio.js";
 import { describeDay } from "./lunar.js";
 import { createSession, endEarly, formatClock, sessionStatus } from "./meditation.js";
@@ -816,9 +817,22 @@ function openAbout() {
         el("li", { text: "Âm thanh chuông, mõ được tổng hợp bằng máy, không dùng bản ghi tụng kinh." }),
       ),
       el("p", { class: "small", text: "Lịch âm tính theo múi giờ Việt Nam (UTC+7)." }),
+      el("h3", { text: "Ghi công" }),
+      creditList(),
       el("div", { class: "sheet-actions" }, button("Quay lại", () => (closeSheet(), openJournal())), button("Đóng", closeSheet, true)),
     );
   });
+}
+
+/** Danh sách tác giả mô hình 3D và thư viện đang dùng (yêu cầu của giấy phép CC BY / MIT). */
+function creditList() {
+  const list = el("ul", { class: "vows" });
+  for (const c of [...(view.credits?.() ?? []), ...LIBRARY_CREDITS]) {
+    const link = el("a", { href: c.url, target: "_blank", rel: "noopener", text: c.title });
+    const lic = el("a", { href: c.licenseUrl, target: "_blank", rel: "noopener", text: c.license });
+    list.append(el("li", {}, link, ` — ${c.author}, `, lic));
+  }
+  return list;
 }
 
 async function openShare() {
