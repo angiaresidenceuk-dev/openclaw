@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Am Mây</title>
+<meta name="description" content="Am Mây: chốn tĩnh tâm trực tuyến. Thắp nhang, thỉnh chuông, ngồi thiền, thả đèn hoa đăng theo lịch âm. Không chat, không quảng cáo, không quyên góp.">
+<meta name="theme-color" content="#17110d">
+<meta property="og:title" content="Am Mây">
+<meta property="og:description" content="Chốn tĩnh tâm trực tuyến theo lịch âm Việt Nam.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Cormorant+Garamond:wght@600&display=swap&subset=vietnamese">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--AM-MAY-BODY-START-->
+<div id="app">
+  <canvas id="scene" aria-label="Cảnh Am Mây: cổng tam quan, hồ sen, sân gạch có bồ đoàn, gác chuông, bát hương và chính điện. Chạm để đi tới."></canvas>
+  <p id="scene-status" class="sr-only" aria-live="polite"></p>
+
+  <header class="hud">
+    <div>
+      <div class="date-day" id="date-day">Am Mây</div>
+      <div class="date-sub" id="date-sub"></div>
+      <div class="date-next" id="date-next"></div>
+      <span class="badge" id="date-badge" hidden></span>
+    </div>
+    <div class="hud-right">
+      <div class="presence solo" id="presence"><span class="presence-dot" aria-hidden="true"></span><span id="presence-text">Đang mở cổng…</span></div>
+      <div class="icon-row">
+        <button class="icon-btn" id="btn-sound" type="button" aria-pressed="true" aria-label="Tắt âm thanh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path id="snd-wave" d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-journal" type="button" aria-label="Sổ tay tĩnh tâm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 4h11a1 1 0 0 1 1 1v15H7a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h5"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="dock" id="dock" hidden>
+    <div class="dock-card">
+      <div class="dock-title"><h2 id="dock-title">Sân chùa</h2><span class="counter" id="dock-counter"></span></div>
+      <p class="dock-hint" id="dock-hint"></p>
+      <div class="actions" id="dock-actions"></div>
+    </div>
+  </div>
+
+  <div class="meditate" id="meditate" hidden>
+    <div>
+      <div class="breath" id="breath"><span class="breath-word" id="breath-word">Hít vào</span></div>
+      <div class="clock" id="med-clock">10:00</div>
+      <button class="btn" type="button" id="med-stop">Kết thúc sớm</button>
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="sheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" id="sheet-body"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+<!--AM-MAY-BODY-END-->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
