@@ -822,6 +822,10 @@ function openAbout() {
         el("li", { text: "Âm thanh chuông, mõ được tổng hợp bằng máy, không dùng bản ghi tụng kinh." }),
       ),
       el("p", { class: "small", text: "Lịch âm tính theo múi giờ Việt Nam (UTC+7)." }),
+      el("p", {
+        class: "small",
+        text: "Tượng Phật trong chính điện được dựng bằng code, phỏng theo mô tả tượng Phật Pháp Chủ ở chùa Bái Đính (Ninh Bình): ngồi trên toà sen ba tầng, tay phải cầm nụ sen, hào quang lá bồ đề. Đây không phải bản sao đo đạc của pho tượng thật.",
+      }),
       el("h3", { text: "Ghi công" }),
       creditList(),
       el("div", { class: "sheet-actions" }, button("Quay lại", () => (closeSheet(), openJournal())), button("Đóng", closeSheet, true)),

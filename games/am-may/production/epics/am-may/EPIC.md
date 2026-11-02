@@ -17,3 +17,4 @@
 | 007 | [Sổ tay hôm nay và thiệp chia sẻ](story-007-share-card.md) | UI | Complete |
 | 008 | [Giao diện 3D tương tác](story-008-3d-view.md) | Visual/Feel | Complete |
 | 009 | [Chính điện 200 chỗ ngồi](story-009-hall-200.md) | Integration | Complete |
+| 010 | [Tượng Phật phỏng theo tượng Pháp Chủ, chùa Bái Đính](story-010-phap-chu-statue.md) | Visual/Feel | Complete |

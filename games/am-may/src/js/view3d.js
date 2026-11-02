@@ -4,6 +4,7 @@
 // Kéo để xoay quanh am, chụm hai ngón (hoặc lăn chuột) để gần/xa, chạm để đi.
 
 import { MODEL_SLOTS } from "./assets.js";
+import { buildPhapChuStatue } from "./statue3d.js";
 import { TUNING } from "./tuning.js";
 import { CUSHIONS, HOTSPOTS, LAYOUT, hitTest, zoneOf } from "./world.js";
 
@@ -247,6 +248,41 @@ export function createView3D(canvas, THREE) {
     return g;
   }
 
+  // Môi trường phản chiếu cho đồng thếp vàng: một "căn phòng" gradient ấm, lọc trước một lần.
+  const goldEnv = (() => {
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 128;
+    const g = c.getContext("2d");
+    const grad = g.createLinearGradient(0, 0, 0, 128);
+    grad.addColorStop(0, "#fff4dc");
+    grad.addColorStop(0.45, "#c9925a");
+    grad.addColorStop(0.55, "#6a3a22");
+    grad.addColorStop(1, "#2a160c");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 128);
+    for (const [x, y, r] of [
+      [40, 30, 18],
+      [140, 24, 22],
+      [210, 40, 14],
+    ]) {
+      const b = g.createRadialGradient(x, y, 1, x, y, r);
+      b.addColorStop(0, "rgba(255,240,200,1)");
+      b.addColorStop(1, "rgba(255,240,200,0)");
+      g.fillStyle = b;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const env = pmrem.fromEquirectangular(tex).texture;
+    pmrem.dispose();
+    tex.dispose();
+    return env;
+  })();
+  M.gold.envMap = goldEnv;
+  M.bronze.envMap = goldEnv;
+
   // ── Bầu trời, ánh sáng ────────────────────────────────────────────────────
   const skyGeo = new THREE.SphereGeometry(600, 24, 12);
   skyGeo.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(skyGeo.attributes.position.count * 3), 3));
@@ -464,7 +500,7 @@ export function createView3D(canvas, THREE) {
     floor.rotation.x = -Math.PI / 2;
     hallInside.add(floor);
     // Pillars around the hall (open front and sides, like a great hall with its doors folded away)
-    const PH = 5.6;
+    const PH = 10.2; // tall enough for the statue and its bodhi-leaf halo
     const pillarGeo = new THREE.CylinderGeometry(0.3, 0.34, PH, 10);
     const baseGeo = new THREE.CylinderGeometry(0.46, 0.5, 0.25, 10);
     const pillarAt = (x, z) => {
@@ -488,24 +524,28 @@ export function createView3D(canvas, THREE) {
     hallInside.add(box(D1.X - D0.X + 1.6, 0.5, D1.Z - D0.Z, M.lacquer, 0, FLOOR + 0.25, dz));
     hallInside.add(box(D1.X - D0.X, 0.5, D1.Z - D0.Z - 1.4, M.lacquer, 0, FLOOR + 0.75, dz - 0.7));
     hallInside.add(box(D1.X - D0.X + 1.7, 0.08, 0.1, M.gold, 0, FLOOR + 0.5, D1.Z));
+    // Tượng Phật (phỏng theo tượng Pháp Chủ, chùa Bái Đính) on the upper dais step.
     const fy = FLOOR + 1.0;
-    const fz = D0.Z + 2.6;
-    hallInside.add(mesh(new THREE.CylinderGeometry(1.9, 1.6, 0.5, 18), lambert(0xc98f9b), 0, fy + 0.25, fz));
-    const legs = mesh(new THREE.SphereGeometry(1, 18, 10), M.gold, 0, fy + 0.8, fz);
-    legs.scale.set(1.8, 0.7, 1.25);
-    hallInside.add(legs);
-    hallInside.add(mesh(new THREE.CylinderGeometry(0.75, 1.25, 2.3, 16), M.gold, 0, fy + 2.1, fz - 0.1));
-    hallInside.add(mesh(new THREE.SphereGeometry(0.68, 18, 14), M.gold, 0, fy + 3.65, fz - 0.1));
-    hallInside.add(mesh(new THREE.TorusGeometry(1.5, 0.08, 6, 48), M.gold, 0, fy + 3.65, fz - 0.9));
-    const haloGlow = glow(0xffd58a, 8, 0.55);
-    haloGlow.position.set(0, fy + 3.6, fz - 0.7);
+    const fz = D0.Z + 3.2;
+    const statueMats = {
+      gold: new THREE.MeshStandardMaterial({ color: 0xe0b85a, metalness: 0.85, roughness: 0.3, envMap: goldEnv, envMapIntensity: 1.1 }),
+      goldDark: new THREE.MeshStandardMaterial({ color: 0xb08a3a, metalness: 0.8, roughness: 0.42, envMap: goldEnv, envMapIntensity: 0.9 }),
+      lotus: new THREE.MeshStandardMaterial({ color: 0xe9b07a, metalness: 0.6, roughness: 0.38, envMap: goldEnv, envMapIntensity: 0.9 }),
+    };
+    const statue = buildPhapChuStatue(THREE, statueMats);
+    statue.scale.setScalar(0.9);
+    statue.position.set(0, fy, fz);
+    hallInside.add(statue);
+    hall.userData.statue = statue;
+    const haloGlow = glow(0xffd58a, 9, 0.35);
+    haloGlow.position.set(0, fy + 0.9 * 5.6, fz - 1.0);
     hallInside.add(haloGlow);
     hall.userData.candles = [];
     for (const sx of [-1, 1]) {
-      hallInside.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8), M.candle, sx * 3.2, FLOOR + 1.4, D1.Z - 1.2));
-      const fl = mesh(new THREE.ConeGeometry(0.08, 0.28, 6), M.flame, sx * 3.2, FLOOR + 1.95, D1.Z - 1.2, { cast: false });
+      hallInside.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8), M.candle, sx * 4.4, FLOOR + 1.4, D1.Z - 0.9));
+      const fl = mesh(new THREE.ConeGeometry(0.08, 0.28, 6), M.flame, sx * 4.4, FLOOR + 1.95, D1.Z - 0.9, { cast: false });
       const gl = glow(0xffc070, 1.6, 0.7);
-      gl.position.set(sx * 3.2, FLOOR + 1.95, D1.Z - 1.2);
+      gl.position.set(sx * 4.4, FLOOR + 1.95, D1.Z - 0.9);
       hallInside.add(fl, gl);
       hall.userData.candles.push(fl, gl);
     }
@@ -532,10 +572,10 @@ export function createView3D(canvas, THREE) {
     // Hanging lanterns (đèn lồng) along the hall
     for (const z of [-25, -18, -11, -4.5]) {
       for (const x of [-9, 9]) {
-        const l = mesh(new THREE.SphereGeometry(0.42, 12, 8), lambert(0xc0392b, { emissive: 0x401008 }), x, FLOOR + 4.4, z, { cast: false });
+        const l = mesh(new THREE.SphereGeometry(0.42, 12, 8), lambert(0xc0392b, { emissive: 0x401008 }), x, FLOOR + 6.6, z, { cast: false });
         l.scale.y = 1.25;
         const gl = glow(0xffb070, 3.2, 0.5);
-        gl.position.set(x, FLOOR + 4.4, z);
+        gl.position.set(x, FLOOR + 6.6, z);
         hallInside.add(l, gl);
         lanterns3d.push(gl);
       }
@@ -569,9 +609,9 @@ export function createView3D(canvas, THREE) {
   }
   scene.add(hall, hallInside);
   const hallLights = [
-    [0, 4.6, -24],
-    [0, 4.6, -14],
-    [0, 4.6, -5],
+    [0, 6.5, -22],
+    [0, 6.5, -13],
+    [0, 6.5, -5],
   ].map(([x, y, z]) => {
     const l = new THREE.PointLight(0xffb46a, 0.8, 20, 1.6);
     l.position.set(x, FLOOR + y, z);

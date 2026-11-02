@@ -16,6 +16,7 @@ errors from that run (none).
 | 006 Shared presence | `story-006-shared-presence/01-second-visitor-sees-first.png`, `presence.txt` | A second browser sees the others and the shared bell ripple |
 | 008 3D view | `story-008-3d-view/01-orbit-dusk.png`, `02-switched-to-2d.png`, `03-2d-fallback-day.png` | Camera dragged and zoomed at dusk; the 2D/3D button; the 2D fallback |
 | 009 Hall of 200 | `story-009-hall-200/01..05`, `notes.txt` | 150 test sessions plus the player: roof on, roof faded inside, the whole hall, 2D hall, full-moon night |
+| 010 Pháp Chủ statue | `story-010-phap-chu-statue/01..03` | Front view in 3D, 2D altar at night, 3D full-moon night with incense |
 | 007 Share card | `story-007-share-card/01-journal.png`, `02-share-sheet.png`, `03-card-1080x1350.png` | Journal with the private wish list; the generated card (no wish text) |
 
 Automated: `node --test tests/unit/*.test.mjs` — 42 tests, 42 pass (lunar

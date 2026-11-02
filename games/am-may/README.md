@@ -62,12 +62,13 @@ Trước khi phát hành công khai tại Việt Nam, đọc mục **Rủi ro v�
 |---|---|
 | `design/market-analysis-sansa.md` | Phân tích Sansa và thị trường Việt Nam |
 | `design/game-brief.md` | Brief một trang (tài liệu thiết kế ở mức `minimal`) |
-| `production/epics/am-may/` | Epic và 9 story |
+| `production/epics/am-may/` | Epic và 10 story |
 | `production/qa/evidence/` | Ảnh chụp game chạy thật cho từng story |
 | `src/index.html`, `src/styles.css` | Trang và giao diện |
 | `src/js/lunar.js` | Âm lịch Việt Nam (UTC+7), can chi, Rằm/Mùng 1, ngày lễ |
 | `src/js/world.js` | Bố cục am, bồ đoàn, điểm nghi thức, tìm đường |
 | `src/js/view3d.js` | Cảnh 3D (Three.js): mô hình dựng bằng code, camera xoay/thu phóng, chạm để đi |
+| `src/js/statue3d.js` | Tượng Phật phỏng theo tượng Pháp Chủ chùa Bái Đính; `node tools/export-statue.mjs` xuất GLB cho Blender (`assets/blender/`) |
 | `src/js/view2d.js`, `render.js` | Cảnh 2D (canvas) dự phòng, trời theo giờ, trăng theo pha |
 | `src/vendor/three.min.js` | Three.js r128 (MIT) |
 | `src/js/rituals.js`, `meditation.js` | Nghi thức, tĩnh tâm, chuỗi ngày (hàm thuần) |

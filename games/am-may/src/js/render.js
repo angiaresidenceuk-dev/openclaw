@@ -429,12 +429,30 @@ function drawHall(ctx) {
   // Seated figure with halo: still, simple, centered on the dais
   const cx = 180;
   const cy = d.y + 34;
-  const halo = ctx.createRadialGradient(cx, cy - 6, 2, cx, cy - 6, 28);
-  halo.addColorStop(0, "rgba(240,200,110,0.9)");
-  halo.addColorStop(1, "rgba(240,200,110,0)");
+  // Bodhi-leaf halo (hào quang lá bồ đề), as behind the Pháp Chủ statue at Bái Đính
+  ctx.fillStyle = "#b8903c";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 22);
+  ctx.bezierCurveTo(cx - 22, cy + 26, cx - 34, cy + 4, cx - 30, cy - 14);
+  ctx.bezierCurveTo(cx - 26, cy - 30, cx - 12, cy - 38, cx - 3, cy - 44);
+  ctx.quadraticCurveTo(cx, cy - 50, cx, cy - 54);
+  ctx.quadraticCurveTo(cx, cy - 50, cx + 3, cy - 44);
+  ctx.bezierCurveTo(cx + 12, cy - 38, cx + 26, cy - 30, cx + 30, cy - 14);
+  ctx.bezierCurveTo(cx + 34, cy + 4, cx + 22, cy + 26, cx, cy + 22);
+  ctx.fill();
+  ctx.fillStyle = "#e6c26a";
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx + Math.sin(a) * 24, cy - 14 - Math.cos(a) * 30, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const halo = ctx.createRadialGradient(cx, cy - 8, 2, cx, cy - 8, 20);
+  halo.addColorStop(0, "rgba(255,226,150,0.9)");
+  halo.addColorStop(1, "rgba(255,226,150,0)");
   ctx.fillStyle = halo;
   ctx.beginPath();
-  ctx.arc(cx, cy - 6, 28, 0, Math.PI * 2);
+  ctx.arc(cx, cy - 8, 20, 0, Math.PI * 2);
   ctx.fill();
   const gold = ctx.createLinearGradient(cx - 18, cy - 12, cx + 18, cy + 26);
   gold.addColorStop(0, "#e6c26a");
@@ -450,10 +468,29 @@ function drawHall(ctx) {
   ctx.beginPath();
   ctx.arc(cx, cy - 8, 8, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#c98f9b";
+  // Right hand raised to head height holding a lotus bud
+  ctx.strokeStyle = "#c9a24a";
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.ellipse(cx, cy + 26, 26, 5, 0, 0, Math.PI * 2);
+  ctx.moveTo(cx - 12, cy + 4);
+  ctx.quadraticCurveTo(cx - 20, cy + 10, cx - 14, cy - 6);
+  ctx.stroke();
+  ctx.fillStyle = "#e6a3a8";
+  ctx.beginPath();
+  ctx.ellipse(cx - 14, cy - 11, 2, 3.4, 0, 0, Math.PI * 2);
   ctx.fill();
+  // Three-tier lotus throne
+  for (const [w, h, y, col] of [
+    [30, 5, cy + 28, "#b0924c"],
+    [27, 5, cy + 25, "#e0a8b4"],
+    [23, 4, cy + 22, "#f2c3cc"],
+  ]) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.ellipse(cx, y, w, h, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   // Altar table in front of the dais, where the incense bowl stands
   ctx.fillStyle = "#5a1a10";
   ctx.fillRect(154, d.y + d.h, 52, 12);
@@ -805,8 +842,9 @@ export function drawAltarLight(ctx, t, dark) {
   room.addColorStop(1, "rgba(255,190,110,0)");
   ctx.fillStyle = room;
   ctx.fillRect(h.x, h.y, h.w, h.h);
-  const g = ctx.createRadialGradient(180, 140, 4, 180, 140, 50 + dark * 30);
-  g.addColorStop(0, `rgba(255,196,110,${(0.25 + dark * 0.6) * flick})`);
+  // Soft enough at night that the figure and its leaf halo stay readable.
+  const g = ctx.createRadialGradient(180, 140, 4, 180, 140, 46 + dark * 20);
+  g.addColorStop(0, `rgba(255,196,110,${(0.16 + dark * 0.3) * flick})`);
   g.addColorStop(1, "rgba(255,196,110,0)");
   ctx.fillStyle = g;
   ctx.fillRect(110, 90, 140, 110);
